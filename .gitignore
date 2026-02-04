@@ -1,0 +1,21 @@
+# python setup
+__pycache__
+.venv_orfs_agent
+
+# local scripts
+
+# experiment
+logs/*
+objects/*
+results/*
+reports/*
+backup_dir
+beifen
+comparison
+experiment_*.md
+output_results
+prompts_storage
+rag_date
+designs
+platforms
+scripts

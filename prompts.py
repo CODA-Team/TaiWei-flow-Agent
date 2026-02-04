@@ -347,6 +347,7 @@ default_parameter_guideline = """When optimizing parameters, consider these guid
 
 
 import openai
+from openai import OpenAI
 import os
 from typing import Dict, Any
 
@@ -415,13 +416,13 @@ def get_optimization_prompt(pdk: str, circuit: str, goal: str, use_surrogate: bo
     should use the second person, and not the first person."""
     
     try:
-        openai_key = #PUT YOUR KEY HERE
+        openai_key = os.environ.get("OPENAI_API_KEY")
         if not openai_key:
             raise ValueError("OPENAI_API_KEY environment variable not set")
             
-        client = openai.OpenAI(api_key=openai_key)
+        client = OpenAI(base_url="https://ai.gitee.com/v1", api_key=openai_key)  
         response = client.chat.completions.create(
-            model="o1-preview",
+            model="DeepSeek-R1",
             messages=[
                 {"role": "user", "content": system_message + "\n\n" + str(data)}
             ],

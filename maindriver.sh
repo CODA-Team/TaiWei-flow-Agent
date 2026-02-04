@@ -2,10 +2,10 @@
 
 # Default values
 TOTAL_ITERS=6
-PARALLEL_RUNS=50
-TIMEOUT="45m"
-TOTAL_CPUS=110
-TOTAL_RAM=220
+PARALLEL_RUNS=25
+TIMEOUT="120m"
+TOTAL_CPUS=100
+TOTAL_RAM=200
 ECP_WEIGHT=0.5
 WL_WEIGHT=0.5
 ECP_WEIGHT_SURROGATE=0.5
@@ -48,7 +48,7 @@ done
 # Validate required arguments
 if [[ -z "$platform" || -z "$design" ]]; then
     echo "Usage: $0 -p <platform> -d <design> [-i iterations] [-r parallel_runs] [-t timeout] [-o objective]"
-    echo "  platform: asap7 or sky130hd"
+    echo "  platform: asap7 or sky130hd or nangate45"
     echo "  design: aes, ibex, or jpeg"
     echo "  iterations: total number of iterations (default: 6)"
     echo "  parallel_runs: number of parallel runs (default: 50)"
@@ -63,11 +63,6 @@ objective=${objective:-"ECP"}
 # Convert objective to uppercase for consistency
 objective="${objective^^}"
 
-# Validate platform
-if [[ "$platform" != "asap7" && "$platform" != "sky130hd" ]]; then
-    echo "Error: platform must be either asap7 or sky130hd"
-    exit 1
-fi
 
 # Validate design
 if [[ "$design" != "aes" && "$design" != "ibex" && "$design" != "jpeg" ]]; then
@@ -81,7 +76,21 @@ if [[ "$objective" != "ECP" && "$objective" != "DWL" && "$objective" != "COMBO" 
     exit 1
 fi
 
+LOG_NAME="experiment_${platform}_${design}_$(date +%m%d_%H%M).md"
+
+exec > >(tee -a "$LOG_NAME") 2>&1
+
+echo "# EDA Optimization Log"
+echo "Start Time: $(date)"
+echo "Objective: $objective | Platform: $platform | Design: $design"
+echo "-------------------------------------------"
+echo ""
+
 # Validate weights sum to 1
+export PLATFORM=$platform
+export DESIGN=$design
+export OBJECTIVE=$objective
+
 if [[ "$objective" == "COMBO" ]]; then
     # Ensure jq is installed
     if ! command -v jq &> /dev/null; then
@@ -191,13 +200,14 @@ create_backup() {
     local platform=$1
     local design=$2
     local iteration=$3
-    local backup_dir="../result_dump_${iteration}"
+    local backup_dir="./backup_dir/${platform}/${design}/result_dump_${iteration}"        
     
-    echo "Creating backup for iteration ${iteration}..."
+    echo "Creating backup for iteration ${iteration}..."    
     mkdir -p "$backup_dir"
     
     # Move config and constraint files
-    mv designs/${platform}/${design}/config_*.mk "$backup_dir"/ 2>/dev/null
+    # mv designs/${platform}/${design}/config_*.mk "$backup_dir"/ 2>/dev/null
+    cp designs/${platform}/${design}/config_*.mk "$backup_dir"/ 2>/dev/null
     mv designs/${platform}/${design}/constraint_*.sdc "$backup_dir"/ 2>/dev/null
     if [[ "$platform" == "asap7" && "$design" == "jpeg" ]]; then
         mv designs/${platform}/${design}/jpeg_encoder15_7nm_*.sdc "$backup_dir"/ 2>/dev/null
@@ -206,6 +216,7 @@ create_backup() {
     # Move logs
     mkdir -p "$backup_dir/logs_dump"
     mv logs/${platform}/${design}/* "$backup_dir/logs_dump"/ 2>/dev/null
+    cp logs/${platform}_${design}* "$backup_dir/logs_dump"/ 2>/dev/null
     
     # Move results
     mkdir -p "$backup_dir/results_dump"
@@ -223,7 +234,7 @@ for i in $(seq 1 $TOTAL_ITERS); do
     
     # Run sequential phase
     ./run_sequential.sh "$platform" "$design" "$PARALLEL_RUNS" "$i"
-    
+    echo "./run_sequential.sh \"$platform\" \"$design\" \"$PARALLEL_RUNS\" \"$i\""
     # Run parallel phase with timeout
     timeout "$TIMEOUT" ./run_parallel.sh "$platform" "$design" "$PARALLEL_RUNS" || true
     
@@ -236,8 +247,16 @@ for i in $(seq 1 $TOTAL_ITERS); do
     # Generate constraints for next iteration (skip for last iteration)
     if [ "$i" -lt "$TOTAL_ITERS" ]; then
         echo "Running optimization for next iteration..."
-        python3 optimize.py "$platform" "$design" "$objective" "$PARALLEL_RUNS"
+        python3 optimize.py "$platform" "$design" "$objective" "$PARALLEL_RUNS" 
+        echo "python3 optimize.py \"$platform\" \"$design\" \"$objective\" \"$PARALLEL_RUNS\" \"$i\""
     fi
+
 done
+
+# Post-processing: extract metrics, count stats, and plot envelopes
+metrics_md="output_results/${platform}_${design}_${objective}_metrics.md"
+python3 extract_metrics.py -i "backup_dir/${platform}/${design}" -o "$metrics_md"
+python3 count.py --detailed "$metrics_md" -o "$objective"
+python3 print.py "$metrics_md" -o "$objective"
 
 echo "All iterations complete"

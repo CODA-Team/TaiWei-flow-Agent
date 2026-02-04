@@ -1,0 +1,3 @@
+[submodule "models/mxbai-embed-large-v1"]
+	path = models/mxbai-embed-large-v1
+	url = https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1

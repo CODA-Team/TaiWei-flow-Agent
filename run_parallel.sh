@@ -3,7 +3,7 @@
 # Ensure correct number of arguments
 if [ $# -ne 3 ]; then
     echo "Usage: $0 <platform> <design> <parallel_runs>"
-    echo "platform: asap7 or sky130hd"
+    echo "platform: asap7 or sky130hd or nangate45"
     echo "design: aes, ibex, or jpeg"
     echo "parallel_runs: number of parallel runs"
     exit 1
@@ -13,12 +13,6 @@ platform=$1
 design=$2
 parallel_runs=$3
 
-# Validate platform and design
-if [[ ! "$platform" =~ ^(asap7|sky130hd)$ ]]; then
-    echo "Error: platform must be asap7 or sky130hd"
-    exit 1
-fi
-
 if [[ ! "$design" =~ ^(aes|ibex|jpeg)$ ]]; then
     echo "Error: design must be aes, ibex, or jpeg"
     exit 1
@@ -26,8 +20,8 @@ fi
 
 # Get resource limits from environment or use defaults
 TIMEOUT=${TIMEOUT:-"45m"}
-TOTAL_CPUS=${TOTAL_CPUS:-110}
-TOTAL_RAM=${TOTAL_RAM:-220}
+TOTAL_CPUS=${TOTAL_CPUS:-100}
+TOTAL_RAM=${TOTAL_RAM:-200}
 
 # Calculate resources per run
 cpus_per_run=$((TOTAL_CPUS / parallel_runs))

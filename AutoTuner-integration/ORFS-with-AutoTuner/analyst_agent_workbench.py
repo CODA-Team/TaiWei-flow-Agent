@@ -9,12 +9,47 @@ from dotenv import load_dotenv
 import anthropic # type: ignore
 import time # For retry delay
 import random # For placeholder BayesOpt, can be removed if BayesOpt is robust
+from pathlib import Path
 
 # For Bayesian Optimization
 from skopt import Optimizer
 from skopt.space import Real, Integer, Categorical
 from skopt.utils import use_named_args # For easier handling of parameters
 
+from rag.index import load_embeddings_and_docs, build_and_save_embeddings
+from rag.util import answerWithRAG, modelUtility
+from sentence_transformers import SentenceTransformer
+import torch
+
+## ========== 新增：三个 QA 数据路径 ==========
+base_dir = Path(__file__).parent
+
+# 构建相对路径
+qa_paths = [
+    base_dir.parent.parent / "EDA-Corpus-main" / "Augmented_Data" / "Question-Answer" / "Flow" / "Flow.csv",
+    base_dir.parent.parent / "EDA-Corpus-main" / "Augmented_Data" / "Question-Answer" / "General" / "General.csv",
+    base_dir.parent.parent / "EDA-Corpus-main" / "Augmented_Data" / "Question-Answer" / "Tools" / "Tools.csv",
+]
+merged_csv_path = "RAGData/RAGFLOWGUIDE.csv"  # 统一向量库文件路径
+os.makedirs("RAGData", exist_ok=True)
+
+def merge_qa_files(file_list, output_path):
+    dfs = []
+    for path in file_list:
+        if os.path.exists(path):
+            df = pd.read_csv(path)
+            # 清洗重复与空行
+            df = df.drop_duplicates().dropna(how="any")
+            dfs.append(df)
+            print(f"[RAG] 已加载文件: {path}, 包含 {len(df)} 条记录。")
+        else:
+            print(f"[警告] 文件不存在: {path}")
+    if dfs:
+        merged = pd.concat(dfs, ignore_index=True)
+        merged.to_csv(output_path, index=False)
+        print(f"[RAG] 已合并 QA 文件至 {output_path}，总计 {len(merged)} 条数据。")
+    else:
+        raise FileNotFoundError("[错误] 未找到任何有效 QA 文件。")
 # --- Global State for Tools ---
 TOOL_STATE = {
     "current_df": pd.DataFrame(),
@@ -189,6 +224,17 @@ def get_sample_rows(n_rows=3, query_string=None):
              return header + ":\n(No rows to sample)"
         return header + ":\n" + df_to_sample.sample(actual_n_rows).to_string()
     except Exception as e: return "Error in get_sample_rows: " + str(e) + "\n" + traceback.format_exc()
+
+def get_rag_context(query, topk=6):
+    """
+    使用 RAG 数据库回答问题。
+    query: 用户或 LLM 的查询字符串
+    topk: 检索前 k 个相关文档
+    """
+    try:
+        return answerWithRAG(query, embeddings, embeddingModel, docs, docsDict, topk=topk)
+    except Exception as e:
+        return f"Error in RAG retrieval: {str(e)}"
 
 def suggest_bayesian_optimization_configs(target_metric_to_minimize, n_suggestions=5, training_data_query=None, validation_data_query=None):
     log_to_file_and_console("[BAYESOPT] Called suggest_bayesian_optimization_configs.")
@@ -383,6 +429,7 @@ PYTHON_TOOLS_MAP = {
     "get_sample_rows": get_sample_rows,
     "reset_data_to_all_valid_runs": reset_data_to_all_valid_runs,
     "suggest_bayesian_optimization_configs": suggest_bayesian_optimization_configs,
+    "get_rag_context": get_rag_context,
     "suggest_new_tool": lambda suggested_tool_name, suggested_tool_description: log_to_file_and_console("[LLM TOOL SUGGESTION]\nName: " + str(suggested_tool_name) + "\nDescription: " + str(suggested_tool_description)) or "New tool suggestion noted: " + str(suggested_tool_name) 
 }
 
@@ -506,7 +553,20 @@ ANTHROPIC_TOOL_SCHEMAS = [
             },
             "required": ["target_metric_to_minimize"]
         }
+    },
+    {
+        "name": "get_rag_context",
+        "description": "检索 OpenROAD-Agent 的 RAG 数据库，返回相关 API 文档或代码片段，用于辅助分析。",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "要查询的问题"},
+                "topk": {"type": "integer", "default": 6, "description": "返回的相关文档数量"}
+            },
+            "required": ["query"]
+        }
     }
+
 ]
 
 def run_agent_workbench(main_df=None, circuit=None, pdk=None,
@@ -551,6 +611,20 @@ def run_agent_workbench(main_df=None, circuit=None, pdk=None,
     except Exception as e:
         print("Error initializing Anthropic client: " + str(e))
         return
+    
+    try:
+        embeddings_np, docs, docsDict = load_embeddings_and_docs()
+        embeddings = torch.tensor(embeddings_np)
+        embeddingModel = SentenceTransformer("mxbai-embed-large-v1")
+        print("[RAG] 成功加载向量数据库。")
+    except FileNotFoundError:
+        print("[RAG] 向量库不存在，正在构建...")
+        merge_qa_files(qa_paths, merged_csv_path)
+        build_and_save_embeddings(merged_csv_path)
+        embeddings_np, docs, docsDict = load_embeddings_and_docs()
+        embeddings = torch.tensor(embeddings_np)
+        embeddingModel = SentenceTransformer("mxbai-embed-large-v1")
+        print("[RAG] 向量库已构建并加载。")
         
     session_uuid = uuid.uuid4()
     context_file_name = log_dir + "/" + args.circuit + "_" + args.pdk + "_" + args.optimization_goal + "_context_" + str(session_uuid) + ".txt"
