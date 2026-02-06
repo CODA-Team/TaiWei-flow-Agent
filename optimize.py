@@ -136,12 +136,12 @@ def extract_wirelength_metrics(log_content: str) -> Dict[str, float]:
 def extract_drc_metrics(log_content: str) -> Dict[str, float]:
     """Extract drc-related metrics from log content"""
     metrics = {}
-    
     violation_pattern = r'\[INFO DRT-0199\].*?Number of violations\s*=\s*(\d+)'
-    drc_match = re.search(violation_pattern, log_content, re.DOTALL)
+    
+    drc_match = re.findall(violation_pattern, log_content)
     
     if drc_match:
-        metrics['drc'] = float(drc_match.group(1))
+        metrics['drc'] = float(drc_match[-1])
     else:
         print("Warning: DRT-0199 violations count not found.")
         
