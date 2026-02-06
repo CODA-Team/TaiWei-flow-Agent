@@ -48,12 +48,12 @@ for pair in "${pairs[@]}"; do
   echo
 done
 
-# 最后打印统计摘要
+
 echo ""
 echo "==========================================="
 echo "           EXECUTION SUMMARY               "
 echo "==========================================="
-# 使用 column 命令格式化打印 CSV (如果系统没有 column，可以直接 cat)
+
 if command -v column &> /dev/null; then
     column -t -s, "$LOG_FILE"
 else
