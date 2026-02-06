@@ -63,6 +63,11 @@ objective=${objective:-"ECP"}
 # Convert objective to uppercase for consistency
 objective="${objective^^}"
 
+# Validate platform
+# if [[ "$platform" != "asap7" && "$platform" != "sky130hd" ]]; then
+#     echo "Error: platform must be either asap7 or sky130hd"
+#     exit 1
+# fi
 
 # Validate design
 if [[ "$design" != "aes" && "$design" != "ibex" && "$design" != "jpeg" ]]; then
@@ -166,35 +171,36 @@ export TIMEOUT
 mkdir -p logs
 
 # Define the line numbers for DESIGN_CONFIG lines
-start_line=9
-end_line=15
+# start_line=9
+# end_line=15
 
-# Function to comment all DESIGN_CONFIG lines
-comment_all_design_configs() {
-    sed -i "${start_line},${end_line} s/^\([^#]\)/#\1/" Makefile
-}
+# # Function to comment all DESIGN_CONFIG lines
+# comment_all_design_configs() {
+#     sed -i "${start_line},${end_line} s/^\([^#]\)/#\1/" Makefile
+# }
 
-# Function to uncomment a specific DESIGN_CONFIG line
-uncomment_design_config_line() {
-    local line_num=$1
-    sed -i "${line_num} s/^#//" Makefile
-}
+# # Function to uncomment a specific DESIGN_CONFIG line
+# uncomment_design_config_line() {
+#     local line_num=$1
+#     sed -i "${line_num} s/^#//" Makefile
+# }
 
-# Comment all DESIGN_CONFIG lines first
-comment_all_design_configs
+# # Comment all DESIGN_CONFIG lines first
+# comment_all_design_configs
 
-# Find the line number matching the desired DESIGN_CONFIG
-config_pattern="DESIGN_CONFIG=./designs/${platform}/${design}/config_\\\$(INT_PARAM).mk"
-line_num=$(grep -n "$config_pattern" Makefile | cut -d: -f1)
+# # Find the line number matching the desired DESIGN_CONFIG
+# config_pattern="DESIGN_CONFIG=./designs/${platform}/${design}/config_\\\$(INT_PARAM).mk"
+# line_num=$(grep -n "$config_pattern" Makefile | cut -d: -f1)
 
-if [ -n "$line_num" ]; then
-    # Uncomment the specific DESIGN_CONFIG line
-    uncomment_design_config_line $line_num
-else
-    echo "Error: Could not find DESIGN_CONFIG line for platform: $platform, design: $design"
-    exit 1
-fi
+# if [ -n "$line_num" ]; then
+#     # Uncomment the specific DESIGN_CONFIG line
+#     uncomment_design_config_line $line_num
+# else
+#     echo "Error: Could not find DESIGN_CONFIG line for platform: $platform, design: $design"
+#     exit 1
+# fi
 
+echo "Makefile configurations commented. Using dynamic parameters from run_parallel.sh."
 # Function to create backup
 create_backup() {
     local platform=$1
@@ -247,9 +253,13 @@ for i in $(seq 1 $TOTAL_ITERS); do
     # Generate constraints for next iteration (skip for last iteration)
     if [ "$i" -lt "$TOTAL_ITERS" ]; then
         echo "Running optimization for next iteration..."
+        # python3 optimize_textgrad_v12.py "$platform" "$design" "$objective" "$PARALLEL_RUNS" 
         python3 optimize.py "$platform" "$design" "$objective" "$PARALLEL_RUNS" 
         echo "python3 optimize.py \"$platform\" \"$design\" \"$objective\" \"$PARALLEL_RUNS\" \"$i\""
     fi
+
+    # # Create backup of this iteration's results
+    # create_backup "$platform" "$design" "$i"
 
 done
 
