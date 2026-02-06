@@ -54,6 +54,9 @@ def process_log_file(log_path: str) -> Dict[str, Any]:
         # Extract wirelength information
         wl_metrics = extract_wirelength_metrics(content)
         run_data['metrics'].update(wl_metrics)
+
+        drc_metrics = extract_drc_metrics(content)
+        run_data['metrics'].update(drc_metrics)
         
         # Extract any errors
         errors = extract_errors(content)
@@ -127,6 +130,20 @@ def extract_wirelength_metrics(log_content: str) -> Dict[str, float]:
     cts_wl_match = re.search(r'Total wirelength: ([\d.]+)', log_content)
     if cts_wl_match:
         metrics['cts_wirelength'] = float(cts_wl_match.group(1))
+        
+    return metrics
+
+def extract_drc_metrics(log_content: str) -> Dict[str, float]:
+    """Extract drc-related metrics from log content"""
+    metrics = {}
+    
+    violation_pattern = r'\[INFO DRT-0199\].*?Number of violations\s*=\s*(\d+)'
+    drc_match = re.search(violation_pattern, log_content, re.DOTALL)
+    
+    if drc_match:
+        metrics['drc'] = float(drc_match.group(1))
+    else:
+        print("Warning: DRT-0199 violations count not found.")
         
     return metrics
 
