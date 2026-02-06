@@ -1,25 +1,24 @@
 # settings.mk is not under source control. Put variables into this
 # file to avoid having to adding the to the make command line.
--include settings.mk
-INT_PARAM=1
+# -include settings.mk 
+# INT_PARAM=1
 # PYTHON_EXE ?= $(shell command -v python3 || command -v python)
 # ==============================================================================
 # Uncomment or add the design to run
 # ==============================================================================
 
-#DESIGN_CONFIG=./designs/nangate45/aes/config_$(INT_PARAM).mk
-#DESIGN_CONFIG=./designs/nangate45/ibex/config_$(INT_PARAM).mk
-#DESIGN_CONFIG=./designs/nangate45/jpeg/config_$(INT_PARAM).mk
+# DESIGN_CONFIG=./designs/nangate45/aes/config_$(INT_PARAM).mk
+# DESIGN_CONFIG=./designs/nangate45/ibex/config_$(INT_PARAM).mk
+# DESIGN_CONFIG=./designs/nangate45/jpeg/config_$(INT_PARAM).mk
 
 # DESIGN_CONFIG=./designs/sky130hd/aes/config_$(INT_PARAM).mk
-#DESIGN_CONFIG=./designs/sky130hd/ibex/config_$(INT_PARAM).mk
-#DESIGN_CONFIG=./designs/sky130hd/jpeg/config_$(INT_PARAM).mk
+# DESIGN_CONFIG=./designs/sky130hd/ibex/config_$(INT_PARAM).mk
+# DESIGN_CONFIG=./designs/sky130hd/jpeg/config_$(INT_PARAM).mk
 
 # DESIGN_CONFIG=./designs/asap7/aes/config_$(INT_PARAM).mk
- DESIGN_CONFIG=./designs/asap7/ibex/config_$(INT_PARAM).mk
+# DESIGN_CONFIG=./designs/asap7/ibex/config_$(INT_PARAM).mk
 # DESIGN_CONFIG=./designs/asap7/jpeg/config_$(INT_PARAM).mk
 
-$(info Using config.mk from $(DESIGN_CONFIG))
 # Default design
 # DESIGN_CONFIG ?= ./designs/nangate45/gcd/config.mk
 
@@ -27,8 +26,9 @@ $(info Using config.mk from $(DESIGN_CONFIG))
 # in this file. This allows the DESIGN_CONFIG to set different defaults than
 # this file.
 
-include $(DESIGN_CONFIG)
-
+-include $(DESIGN_CONFIG)
+$(info [Makefile]Using config.mk from $(DESIGN_CONFIG))
+$(info [Makefile]Using INT_PARAM $(INT_PARAM))
 # ==============================================================================
 #  ____  _____ _____ _   _ ____
 # / ___|| ____|_   _| | | |  _ \
@@ -74,13 +74,13 @@ export FLOW_VARIANT ?=base
 include $(FLOW_HOME)/scripts/variables.mk
 
 export DESIGN_NICKNAME ?= $(DESIGN_NAME)
-export DESIGN_CONFIG
+# export DESIGN_CONFIG
 
 export DESIGN_DIR  = $(dir $(DESIGN_CONFIG))
-export LOG_DIR     = $(WORK_HOME)/logs/$(PLATFORM)/$(DESIGN_NICKNAME)/$(FLOW_VARIANT)_$(INT_PARAM)
-export OBJECTS_DIR = $(WORK_HOME)/objects/$(PLATFORM)/$(DESIGN_NICKNAME)/$(FLOW_VARIANT)_$(INT_PARAM)
-export REPORTS_DIR = $(WORK_HOME)/reports/$(PLATFORM)/$(DESIGN_NICKNAME)/$(FLOW_VARIANT)_$(INT_PARAM)
-export RESULTS_DIR = $(WORK_HOME)/results/$(PLATFORM)/$(DESIGN_NICKNAME)/$(FLOW_VARIANT)_$(INT_PARAM)
+# export LOG_DIR     ?= $(WORK_HOME)/logs/$(PLATFORM)/$(DESIGN_NICKNAME)/$(FLOW_VARIANT)_$(INT_PARAM)
+# export OBJECTS_DIR ?= $(WORK_HOME)/objects/$(PLATFORM)/$(DESIGN_NICKNAME)/$(FLOW_VARIANT)_$(INT_PARAM)
+# export REPORTS_DIR ?= $(WORK_HOME)/reports/$(PLATFORM)/$(DESIGN_NICKNAME)/$(FLOW_VARIANT)_$(INT_PARAM)
+# export RESULTS_DIR ?= $(WORK_HOME)/results/$(PLATFORM)/$(DESIGN_NICKNAME)/$(FLOW_VARIANT)_$(INT_PARAM)
 
 # default value "base" for FLOW_VARIANT and "." for WORK_HOME are duplicated
 # from variables.yaml and variables.mk because we need it
@@ -788,4 +788,4 @@ klayout:
 .phony: run
 run:
 	@mkdir -p $(RESULTS_DIR) $(LOG_DIR) $(REPORTS_DIR) $(OBJECTS_DIR)
-	($(OPENROAD_CMD) -no_splash $(if $(filter %.py,$(RUN_SCRIPT)),-py
+	@# ($(OPENROAD_CMD) -no_splash $(if $(filter %.py,$(RUN_SCRIPT)),-py
