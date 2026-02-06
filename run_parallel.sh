@@ -13,6 +13,15 @@ platform=$1
 design=$2
 parallel_runs=$3
 
+export PLATFORM=$platform
+export DESIGN=$design
+
+# Validate platform and design
+# if [[ ! "$platform" =~ ^(asap7|sky130hd)$ ]]; then
+#     echo "Error: platform must be asap7 or sky130hd"
+#     exit 1
+# fi
+
 if [[ ! "$design" =~ ^(aes|ibex|jpeg)$ ]]; then
     echo "Error: design must be aes, ibex, or jpeg"
     exit 1
@@ -45,9 +54,16 @@ run_task() {
     local task_id=$1
     local start_cpu=$2
     local end_cpu=$3
-    
-    # Set CPU affinity and memory limits
-    taskset -c $start_cpu-$end_cpu make INT_PARAM=$task_id \
+
+    CURRENT_CONFIG="./designs/${platform}/${design}/config_${task_id}.mk"
+    echo "[run_parallel.sh ]Using config.mk from ${CURRENT_CONFIG}"
+    taskset -c $start_cpu-$end_cpu make \
+        DESIGN_CONFIG="$CURRENT_CONFIG" \
+        INT_PARAM="$task_id" \
+        RESULTS_DIR="./results/${platform}/${design}/base_${task_id}" \
+        LOG_DIR="./logs/${platform}/${design}/base_${task_id}" \
+        OBJECTS_DIR="./objects/${platform}/${design}/base_${task_id}" \
+        REPORTS_DIR="./reports/${platform}/${design}/base_${task_id}" \
         > "logs/${platform}_${design}_run${task_id}.log" 2>&1 &
     
     echo "Started task $task_id on CPUs $start_cpu-$end_cpu"
