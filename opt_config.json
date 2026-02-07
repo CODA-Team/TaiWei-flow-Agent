@@ -507,6 +507,24 @@
       }
     },
     {
+      "description": "asap7_nangate45_3D gcd ECP",
+      "platform": "asap7_nangate45_3D",
+      "design": "gcd",
+      "goal": "ECP",
+      "initial_config": "./designs/asap7_nangate45_3D/gcd/config.mk",
+      "clock_period_factor": 1.2,
+      "prompt": "PDK Information:\nasap7_nangate45_3D PDK (130nm):\n- Metal stack: 5 layers (M1-M5)\n- M2/M3 pitch: 460nm\n- Standard cell height: 9 tracks\n- VDD rail width: 3 tracks\n- More relaxed timing constraints\n- Abundant routing resources\n\nDesign Information:\nJPEG Encoder:\n- Large design (~40K instances)\n- Mix of control logic and datapaths\n- Multiple clock domains\n- Complex routing requirements\n- Memory-intensive with large arrays\n\nOptimization Goal:\nDetailed Wire Length (DWL) Optimization:\n- Focus on routing efficiency\n- Minimize total wirelength\n- May relax timing constraints\n- Emphasis on placement density and routing congestion\n\nParameter Constraints:\n{\n  \"CORE_UTIL\": {\n    \"type\": \"int\",\n    \"range\": [\n      20,\n      99\n    ]\n  },\n  \"GP_PAD\": {\n    \"type\": \"int\",\n    \"range\": [\n      0,\n      3\n    ]\n  },\n  \"DP_PAD\": {\n    \"type\": \"int\",\n    \"range\": [\n      0,\n      3\n    ]\n  },\n  \"ENABLE_DPO\": {\n    \"type\": \"int\",\n    \"range\": [\n      0,\n      1\n    ]\n  },\n  \"PIN_LAYER_ADJUST\": {\n    \"type\": \"float\",\n    \"range\": [\n      0.2,\n      0.7\n    ]\n  },\n  \"ABOVE_LAYER_ADJUST\": {\n    \"type\": \"float\",\n    \"range\": [\n      0.2,\n      0.7\n    ]\n  },\n  \"PLACE_DENSITY_LB_ADDON\": {\n    \"type\": \"float\",\n    \"range\": [\n      0.0,\n      0.99\n    ]\n  },\n  \"FLATTEN\": {\n    \"type\": \"int\",\n    \"range\": [\n      0,\n      1\n    ]\n  },\n  \"CTS_CLUSTER_SIZE\": {\n    \"type\": \"int\",\n    \"range\": [\n      10,\n      40\n    ]\n  },\n  \"CTS_CLUSTER_DIAMETER\": {\n    \"type\": \"int\",\n    \"range\": [\n      80,\n      120\n    ]\n  },\n  \"TNS_END_PERCENT\": {\n    \"type\": \"int\",\n    \"range\": [\n      0,\n      100\n    ]\n  }\n}\n\nConfigure OpenROAD flow parameters for optimizing JPEG on SKY130HD PDK with DWL objective.\nClock period should be in ns.",
+      "llm_response": "You are tasked with optimizing the OpenROAD flow parameters to implement a **JPEG Encoder** on the **SKY130HD PDK (130nm process)**. The primary **optimization goal** is to **minimize the Detailed Wire Length (DWL)**, focusing on routing efficiency and total wirelength reduction. Timing constraints can be relaxed, but attention should be paid to placement density and routing congestion. The clock period should be specified in **nanoseconds (ns)**.\n\n### PDK Information:\n- **Process**: SKY130HD (130nm)\n- **Metal Stack**: 5 layers (M1-M5)\n- **M2/M3 Pitch**: 460nm\n- **Standard Cell Height**: 9 tracks\n- **VDD Rail Width**: 3 tracks\n- **Characteristics**:\n  - High RC delay requiring careful timing closure\n  - Abundant routing resources necessitating efficient utilization\n\n### Design Information:\n- **Design**: JPEG Encoder\n- **Size**: Approximately 40,000 instances\n- **Structure**:\n  - Mix of control logic and datapaths\n  - Multiple clock domains\n  - Complex routing requirements\n  - Memory-intensive with large arrays\n\n### Optimization Goal:\n- **Objective**: Minimize **Detailed Wire Length (DWL)**\n- **Focus Areas**:\n  - Routing efficiency\n  - Total wirelength reduction\n  - Placement density management\n  - Reduction of routing congestion\n- **Constraints**:\n  - Timing constraints may be relaxed for wirelength optimization.\n\n### Parameter Constraints:\nAdjust the following parameters within their specified ranges:\n- `CORE_UTIL` (int, 20-99)\n- `GP_PAD` (int, 0-3)\n- `DP_PAD` (int, 0-3)\n- `ENABLE_DPO` (int, 0-1)\n- `PIN_LAYER_ADJUST` (float, 0.2-0.7)\n- `ABOVE_LAYER_ADJUST` (float, 0.2-0.7)\n- `PLACE_DENSITY_LB_ADDON` (float, 0.0-0.99)\n- `FLATTEN` (int, 0-1)\n- `CTS_CLUSTER_SIZE` (int, 10-40)\n- `CTS_CLUSTER_DIAMETER` (int, 80-120)\n- `TNS_END_PERCENT` (int, 0-100)\n\nEnsure that the clock period is specified in nanoseconds (ns). Utilize the parameter adjustments to achieve optimal timing closure while efficiently managing routing resources.",
+      "weights": {
+        "ecp": 0.0,
+        "dwl": 1.0
+      },
+      "weights_surrogate": {
+        "ecp": 0.0,
+        "dwl": 1.0
+      }
+    },
+    {
       "description": "sky130hd jpeg COMBO",
       "platform": "sky130hd",
       "design": "jpeg",

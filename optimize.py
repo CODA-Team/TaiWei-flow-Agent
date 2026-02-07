@@ -5,7 +5,6 @@ import sys
 import re
 import numpy as np
 from typing import Dict, List, Any, Tuple, Optional
-import anthropic
 import csv
 import random
 import math
@@ -26,7 +25,7 @@ print("Python executable:", sys.executable)
 print("sys.path:", sys.path[:3])
 print("Current working dir:", os.getcwd())
 
-for pkg in ["anthropic", "sentence_transformers", "torch", "openai"]:
+for pkg in ["sentence_transformers", "torch", "openai"]:
     try:
         __import__(pkg)
         print(f" Imported {pkg}")
@@ -136,12 +135,12 @@ def extract_wirelength_metrics(log_content: str) -> Dict[str, float]:
 def extract_drc_metrics(log_content: str) -> Dict[str, float]:
     """Extract drc-related metrics from log content"""
     metrics = {}
-    
     violation_pattern = r'\[INFO DRT-0199\].*?Number of violations\s*=\s*(\d+)'
-    drc_match = re.search(violation_pattern, log_content, re.DOTALL)
+    
+    drc_match = re.findall(violation_pattern, log_content)
     
     if drc_match:
-        metrics['drc'] = float(drc_match.group(1))
+        metrics['drc'] = float(drc_match[-1])
     else:
         print("Warning: DRT-0199 violations count not found.")
         
@@ -244,6 +243,7 @@ class OptimizationWorkflow:
         
         # Define initial clock periods for each design and platform
         initial_clock_periods = {
+            ('asap7_nangate45_3D', 'gcd'): 0.48, 
             ('asap7', 'aes'): 400,     # in picoseconds
             ('asap7', 'ibex'): 1260,   # in picoseconds
             ('asap7', 'jpeg'): 1100,   # in picoseconds
@@ -256,11 +256,21 @@ class OptimizationWorkflow:
         }
 
         # Get the initial clock period for the current platform and design
+        initial_clock_periods = {
+            (p.lower(), d.lower()): v
+            for (p, d), v in initial_clock_periods.items()
+        }
+
         key = (self.platform.lower(), self.design.lower())
         if key in initial_clock_periods:
             self.initial_clk_period = initial_clock_periods[key]
         else:
             raise ValueError(f"Initial clock period not defined for platform={self.platform}, design={self.design}")
+        # key = (self.platform.lower(), self.design.lower())
+        # if key in initial_clock_periods:
+        #     self.initial_clk_period = initial_clock_periods[key]
+        # else:
+        #     raise ValueError(f"Initial clock period not defined for platform={self.platform}, design={self.design}")
 
         # Calculate clock period range
         min_clk = self.initial_clk_period * 0.7

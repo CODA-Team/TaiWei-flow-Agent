@@ -101,7 +101,7 @@ python3 -m venv .venv_orfs_agent
 source .venv_orfs_agent/bin/activate
 
 # Install required packages
-pip install numpy pandas scikit-learn scipy python-dotenv scikit-optimize openai torch
+pip install numpy pandas scikit-learn scipy python-dotenv scikit-optimize openai torch sentence_transformers
 ```
 
 #### Python Dependencies

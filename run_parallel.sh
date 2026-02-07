@@ -24,7 +24,7 @@ export DESIGN=$design
 
 if [[ ! "$design" =~ ^(aes|ibex|jpeg)$ ]]; then
     echo "Error: design must be aes, ibex, or jpeg"
-    exit 1
+    # exit 1
 fi
 
 # Get resource limits from environment or use defaults
@@ -56,14 +56,35 @@ run_task() {
     local end_cpu=$3
 
     CURRENT_CONFIG="./designs/${platform}/${design}/config_${task_id}.mk"
+    # $(info Using config.mk from $(DESIGN_CONFIG))
     echo "[run_parallel.sh ]Using config.mk from ${CURRENT_CONFIG}"
-    taskset -c $start_cpu-$end_cpu make \
-        DESIGN_CONFIG="$CURRENT_CONFIG" \
-        INT_PARAM="$task_id" \
-        RESULTS_DIR="./results/${platform}/${design}/base_${task_id}" \
-        LOG_DIR="./logs/${platform}/${design}/base_${task_id}" \
-        OBJECTS_DIR="./objects/${platform}/${design}/base_${task_id}" \
-        REPORTS_DIR="./reports/${platform}/${design}/base_${task_id}" \
+    # Set CPU affinity and memory limits
+    # taskset -c $start_cpu-$end_cpu make DESIGN_CONFIG= INT_PARAM=$task_id RESULT_DIR\
+    #     > "logs/${platform}_${design}_run${task_id}.log" 2>&1 &
+        # PLATFORM="$platform" \
+        # DESIGN_NAME="$design" \
+        # DESIGN_NICKNAME="$design" \
+        # RESULTS_DIR="./results/${platform}/${design}/base_${task_id}" \
+        # LOG_DIR="./logs/${platform}/${design}/base_${task_id}" \
+        # OBJECTS_DIR="./objects/${platform}/${design}/base_${task_id}" \
+        # REPORTS_DIR="./reports/${platform}/${design}/base_${task_id}" \
+    # taskset -c $start_cpu-$end_cpu make \
+    #     DESIGN_CONFIG="$CURRENT_CONFIG" \
+    #     INT_PARAM="$task_id" \
+    #     RESULTS_DIR="./results/${platform}/${design}/base_${task_id}" \
+    #     LOG_DIR="./logs/${platform}/${design}/base_${task_id}" \
+    #     OBJECTS_DIR="./objects/${platform}/${design}/base_${task_id}" \
+    #     REPORTS_DIR="./reports/${platform}/${design}/base_${task_id}" \
+    #     > "logs/${platform}_${design}_run${task_id}.log" 2>&1 &
+    chmod +x run_make.sh
+
+    # --- 修正点在这里 ---
+    # taskset 后面必须紧跟 -c 参数，然后再启动脚本
+    taskset -c "${start_cpu}-${end_cpu}" ./run_make.sh \
+        "$CURRENT_CONFIG" \
+        "$task_id" \
+        "$platform" \
+        "$design" \
         > "logs/${platform}_${design}_run${task_id}.log" 2>&1 &
     
     echo "Started task $task_id on CPUs $start_cpu-$end_cpu"
@@ -82,4 +103,6 @@ done
 # Wait for all background tasks to complete
 wait
 
+
 echo "All tasks completed" 
+

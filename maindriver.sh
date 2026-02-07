@@ -2,7 +2,7 @@
 
 # Default values
 TOTAL_ITERS=6
-PARALLEL_RUNS=25
+PARALLEL_RUNS=4
 TIMEOUT="120m"
 TOTAL_CPUS=100
 TOTAL_RAM=200
@@ -72,7 +72,7 @@ objective="${objective^^}"
 # Validate design
 if [[ "$design" != "aes" && "$design" != "ibex" && "$design" != "jpeg" ]]; then
     echo "Error: design must be one of: aes, ibex, jpeg"
-    exit 1
+    # exit 1
 fi
 
 # Validate objective
@@ -245,11 +245,11 @@ for i in $(seq 1 $TOTAL_ITERS); do
     timeout "$TIMEOUT" ./run_parallel.sh "$platform" "$design" "$PARALLEL_RUNS" || true
     
     # Kill any remaining parallel jobs
-    pkill -P $$ || true
-    
+
+    echo "Start backup."
     # Create backup of this iteration's results
     create_backup "$platform" "$design" "$i"
-    
+    echo "Backup complete."
     # Generate constraints for next iteration (skip for last iteration)
     if [ "$i" -lt "$TOTAL_ITERS" ]; then
         echo "Running optimization for next iteration..."
