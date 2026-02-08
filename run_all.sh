@@ -6,9 +6,12 @@ LOG_FILE="run_summary.csv"
 echo "Design,Platform,Duration(seconds),Formatted_Time" > "$LOG_FILE"
 
 pairs=(
-  "aes nangate45"
-  "ibex nangate45"
-  "jpeg nangate45"
+  "aes asap7_3D"
+  "ibex asap7_3D"
+  "jpeg asap7_3D"
+  "aes asap7_nangate45_3D"
+  "ibex asap7_nangate45_3D"
+  "jpeg asap7_nangate45_3D"
   # "aes asap7"
   # "ibex sky130hd"
   # "ibex asap7"
@@ -35,7 +38,7 @@ for pair in "${pairs[@]}"; do
   
   start_ts=$(date +%s)
   
-  ./maindriver.sh -p "$p" -d "$d" -o COMBO
+  ./maindriver.sh -p "$p" -d "$d" -o DWL
   
   end_ts=$(date +%s)
   duration=$((end_ts - start_ts))

@@ -247,12 +247,18 @@ class OptimizationWorkflow:
             ('asap7', 'aes'): 400,     # in picoseconds
             ('asap7', 'ibex'): 1260,   # in picoseconds
             ('asap7', 'jpeg'): 1100,   # in picoseconds
+            ('asap7_3D', 'aes'): 400,     # in picoseconds
+            ('asap7_3D', 'ibex'): 1260,   # in picoseconds
+            ('asap7_3D', 'jpeg'): 1100,   # in picoseconds
             ('sky130hd', 'aes'): 4.5,  # in nanoseconds
             ('sky130hd', 'ibex'): 10.0,# in nanoseconds
             ('sky130hd', 'jpeg'): 8.0, # in nanoseconds
             ('nangate45', 'aes'): 1.0,  # in nanoseconds
             ('nangate45', 'ibex'): 2.0,# in nanoseconds
             ('nangate45', 'jpeg'): 1.0, # in nanoseconds
+            ('asap7_nangate45_3D', 'aes'): 1.0,  # in nanoseconds
+            ('asap7_nangate45_3D', 'ibex'): 2.0,# in nanoseconds
+            ('asap7_nangate45_3D', 'jpeg'): 1.0, # in nanoseconds
         }
 
         # Get the initial clock period for the current platform and design
