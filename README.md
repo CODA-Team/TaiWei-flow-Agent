@@ -56,6 +56,8 @@ The ORFS-Agent consists of several key components:
 - **`maindriver.sh`**: Primary execution script that orchestrates the entire optimization workflow
 - **`run_sequential.sh`**: Handles sequential optimization phases and parameter generation
 - **`run_parallel.sh`**: Manages parallel execution of multiple design runs
+- **`run_make_3d.sh`**: run Makefile to optimize 3D ICs flow
+- **`run_make_2d.sh`**: run Makefile to optimize 2D ICs flow  
 - **`Makefile`**: Modified OpenROAD Makefile supporting parallel runs with INT_PARAM configuration
 - **`opt_config.json`**: Parameter constraints, ranges, and optimization settings for different design-PDK combinations
 - **`INSTRUCTIONS.md`**: Setup and execution instructions
