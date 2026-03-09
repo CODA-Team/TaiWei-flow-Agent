@@ -59,9 +59,9 @@ run_task() {
     # $(info Using config.mk from $(DESIGN_CONFIG))
     echo "[run_parallel.sh ]Using config.mk from ${CURRENT_CONFIG}"
 
-    chmod +x run_make.sh
+    chmod +x run_make_2d.sh
 
-    taskset -c "${start_cpu}-${end_cpu}" ./run_make.sh \
+    taskset -c "${start_cpu}-${end_cpu}" ./run_make_2d.sh \
         "$CURRENT_CONFIG" \
         "$task_id" \
         "$platform" \
