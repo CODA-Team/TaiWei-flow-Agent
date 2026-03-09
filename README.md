@@ -30,7 +30,6 @@ The agent demonstrates improvements in wirelength and effective clock period by 
      - [Command Line Options](#Command-Line-Options)
      - [Example Runs](#Example-Runs)
      - [Output Structure](#Output-Structure)
-- [Experimental Results](#Experimental-Results)
 
 
 ## Project Structure
@@ -49,7 +48,6 @@ The ORFS-Agent consists of several key components:
 - **`rag/`**：Contains the relevant code and configuration files of the RAG framework and is used to implement the 
 - **`rag_data/`**：Stores retrieval databases, design logs, error samples, and knowledge index files.
 - **`models/`**：Stores trained models, vectorized weights, and embedding files to support model inference and knowledge retrieval.
-- **`comparison/`**：Contains baseline code to be compared.
 
 ### Relevant Execution Scripts
 
@@ -87,9 +85,8 @@ The ORFS-Agent consists of several key components:
 ### Prerequisites
 
 1. **OpenROAD-flow-scripts**: Install and configure ORFS-Research. In order to support the parallel execution of multiple tasks, the Makefile of OpenROAD-flow-scripts needs to be adjusted appropriately: the original single configuration file mechanism is changed to the parametric form, that is, from a single config.mk to config_{INT_PARAM}.mk; Add the INT_PARAM variable in the Makefile to distinguish parallel task instances; Use the provided Makefile as a reference for the required changes.
-2. **ORFS-Agent**: Install and configure ORFS-Agent from the address ([ORFS-Agent](https://github.com/ABKGroup/ORFS-Agent#)). In order to unify and optimize logic and interfaces, we need to replace the original identical files in the ORFS-Agent library with the files in the current library. Different files in the ORFS-Agent library will be retained.
-3. **Operating System**: Ubuntu/Debian-based system
-4. **Hardware Resources**: 
+2. **Operating System**: Ubuntu/Debian-based system
+3. **Hardware Resources**: 
    - Minimum 8 vCPUs per parallel run
    - 8+ GB RAM per parallel run (20-25GB for larger circuits like JPEG)
    - For default configuration: 110 vCPUs and 220GB RAM total
@@ -103,7 +100,7 @@ python3 -m venv .venv_orfs_agent
 source .venv_orfs_agent/bin/activate
 
 # Install required packages
-pip install numpy pandas scikit-learn scipy python-dotenv scikit-optimize openai torch sentence_transformers
+pip install numpy pandas scikit-learn scipy python-dotenv scikit-optimize openai torch sentence_transformers 
 ```
 
 #### Python Dependencies
@@ -205,6 +202,10 @@ chmod +x maindriver.sh run_parallel.sh run_sequential.sh
 # Run optimization
 ./maindriver.sh -p <platform> -d <design> [options]
 ```
+
+#### 2D and 3D ICs flow optimization
+
+Ensure you are using the corresponding bash file (`run_make_2d.sh`, `run_make_3d.sh`) in run_parallel.sh.
 
 #### Command Line Options
 
