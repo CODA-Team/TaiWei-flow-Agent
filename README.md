@@ -84,7 +84,7 @@ The ORFS-Agent consists of several key components:
 
 ### Prerequisites
 
-1. **OpenROAD-flow-scripts**: Install and configure ORFS-Research. In order to support the parallel execution of multiple tasks, the Makefile of OpenROAD-flow-scripts needs to be adjusted appropriately: the original single configuration file mechanism is changed to the parametric form, that is, from a single config.mk to config_{INT_PARAM}.mk; Add the INT_PARAM variable in the Makefile to distinguish parallel task instances; Use the provided Makefile as a reference for the required changes.
+1. **OpenROAD-flow-scripts**: Install and configure ORFS-Research. In order to support the parallel execution of multiple tasks, the Makefile of OpenROAD-flow-scripts needs to be adjusted appropriately: the original single configuration file mechanism is changed to the parametric form, that is, from a single config.mk to config_{INT_PARAM}.mk; Use the provided Makefile as a reference for the required changes.
 2. **Operating System**: Ubuntu/Debian-based system
 3. **Hardware Resources**: 
    - Minimum 8 vCPUs per parallel run
