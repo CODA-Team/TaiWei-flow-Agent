@@ -463,6 +463,28 @@ class OptimizationWorkflow:
             "- constraints: the value of cell_pad_detail cannot be greater than the value of cell_pad_global.\n"
         )
 
+        top_k_context = ""
+        if "log_data" in data and "runs" in data["log_data"]:
+            successful_runs = [r for r in data["log_data"].get("runs", []) if r.get("success")]
+            
+            def get_cost(r):
+                obj = self._calculate_objective(r)
+                return obj['value'] if obj['value'] is not None else float('inf')
+            
+            sorted_runs = sorted(successful_runs, key=get_cost)
+            top_runs = sorted_runs[:3]
+            
+            if top_runs:
+                top_k_context = "\n[CRITICAL GUIDANCE] ### Top-3 Historical Best Parameter Configurations ###\n"
+                top_k_context += "You MUST anchor your analysis and new parameter suggestions around these best-known configurations to ensure convergence and prevent wild oscillations.\n"
+                for idx, r in enumerate(top_runs):
+                    cost = get_cost(r)
+                    params = r.get('parameters', {})
+                    filtered_params = {k: v for k, v in params.items() if k in self.parameter_names}
+                    top_k_context += f"Rank {idx+1}: Cost (Objective) = {cost:.2f}\n  Parameters: {json.dumps(filtered_params)}\n"
+        
+        constraints_text += top_k_context
+
         prompt = f"""**stages:{stage.upper()}**
 
         Current Stage: {stage.upper()}
@@ -1546,11 +1568,28 @@ class OptimizationWorkflow:
         candidates = latin_hypercube(n_candidates, len(param_names))
         
         # Scale candidates to parameter ranges
+        best_idx = np.argmin(ytr)
+        best_params = Xtr[best_idx]
+        best_score = ytr[best_idx]
+        print(f"\n[Trust Region] Anchoring search around Best Known Score: {best_score:.2f}")
+        
+        max_step_ratio = 0.10
+        n_local = int(n_candidates * 0.8) #80% of the candidate points are fine-tuned near the optimal solution, and 20% are kept globally random to prevent local deadlock.
+
+        # Scale candidates to parameter ranges (with trust domain restrictions)
         for i, param in enumerate(param_names):
             constraints = self.param_constraints[param]
-            min_val = float(constraints['range'][0])
-            max_val = float(constraints['range'][1])
-            candidates[:, i] = candidates[:, i] * (max_val - min_val) + min_val
+            global_min = float(constraints['range'][0])
+            global_max = float(constraints['range'][1])
+            param_range = global_max - global_min
+
+            local_min = max(global_min, best_params[i] - max_step_ratio * param_range)
+            local_max = min(global_max, best_params[i] + max_step_ratio * param_range)
+
+            # 80% Exploitation
+            candidates[:n_local, i] = candidates[:n_local, i] * (local_max - local_min) + local_min
+            # 20% Exploration 
+            candidates[n_local:, i] = candidates[n_local:, i] * param_range + global_min
         
         # Get predictions
         predictions, uncertainties = model.predict(candidates, return_std=True)
