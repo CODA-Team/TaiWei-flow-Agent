@@ -195,7 +195,8 @@ WL_WEIGHT_SURROGATE=0.5  # Weight for post-CTS WL in the surrogate model
 
 The agent requires API keys for LLM providers. You will need to add them directly into the source code:
 
-- **OpenAI API Key**: In `optimize.py`, find the placeholder for the OpenAI API key and insert your key. This is required for prompt generation functionalities.
+- **OpenAI API Key**:
+- You need to create an `api.sh` file and add the API key for the large language model to the `export` environment variables with the format in `optimize.py`.
 
 **Note**: For improved security, consider modifying the scripts to load keys from environment variables using the `python-dotenv` package.
 
