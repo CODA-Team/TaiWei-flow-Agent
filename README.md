@@ -129,19 +129,9 @@ sudo apt-get install jq bc timeout
 #### Model Dependencies
 Before running, you need to load the model using the following command.
 ```bash
-from sentence_transformers import SentenceTransformer
-
-model = SentenceTransformer("mixedbread-ai/mxbai-embed-large-v1")
-
-sentences = [
-    "The weather is lovely today.",
-    "It's so sunny outside!",
-    "He drove to the stadium."
-]
-embeddings = model.encode(sentences)
-
-similarities = model.similarity(embeddings, embeddings)
-print(similarities.shape)
+mkdir models
+cd models
+git clone https://huggingface.co/mixedbread-ai/mxbai-embed-large-v1
 ```
 
 ## Operating Instructions
