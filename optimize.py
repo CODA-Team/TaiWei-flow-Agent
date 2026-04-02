@@ -1574,7 +1574,8 @@ class OptimizationWorkflow:
         print(f"\n[Trust Region] Anchoring search around Best Known Score: {best_score:.2f}")
         
         max_step_ratio = 0.10
-        n_local = int(n_candidates * 0.8) #80% of the candidate points are fine-tuned near the optimal solution, and 20% are kept globally random to prevent local deadlock.
+        n_local = int(n_candidates * 0.5) #50% of the candidate points are fine-tuned near the optimal solution, and 50% are kept globally random to prevent local deadlock.
+        size_global = n_candidates - n_local
 
         # Scale candidates to parameter ranges (with trust domain restrictions)
         for i, param in enumerate(param_names):
@@ -1582,14 +1583,36 @@ class OptimizationWorkflow:
             global_min = float(constraints['range'][0])
             global_max = float(constraints['range'][1])
             param_range = global_max - global_min
+            
+            step = max_step_ratio * param_range
+          
+            if ('cell_pad' in param or 'util' in param) and param_range <= 10:
+                step = max(step, 1.0)
+            
+            local_min = max(global_min, best_params[i] - step)
+            local_max = min(global_max, best_params[i] + step)
 
-            local_min = max(global_min, best_params[i] - max_step_ratio * param_range)
-            local_max = min(global_max, best_params[i] + max_step_ratio * param_range)
-
-            # 80% Exploitation
-            candidates[:n_local, i] = candidates[:n_local, i] * (local_max - local_min) + local_min
-            # 20% Exploration 
-            candidates[n_local:, i] = candidates[n_local:, i] * param_range + global_min
+            # 50% Exploitation
+            if param == 'enable_dpo':
+                candidates[:n_local, i] = best_params[i]
+                
+            elif 'cell_pad' in param or 'core_util' in param:
+                low = int(np.floor(local_min))
+                high = int(np.ceil(local_max)) + 1
+                candidates[:n_local, i] = np.random.randint(low, high, size=n_local)
+                
+            else:
+                candidates[:n_local, i] = candidates[:n_local, i] * (local_max - local_min) + local_min
+            
+            # 50% Exploration 
+            if param == 'enable_dpo':
+                candidates[n_local:, i] = np.random.randint(0, 2, size=size_global)
+                
+            elif 'cell_pad' in param or 'core_util' in param:
+                candidates[n_local:, i] = np.random.randint(int(global_min), int(global_max) + 1, size=size_global)
+                
+            else:
+                candidates[n_local:, i] = np.random.uniform(global_min, global_max, size=size_global)
         
         # Get predictions
         predictions, uncertainties = model.predict(candidates, return_std=True)
