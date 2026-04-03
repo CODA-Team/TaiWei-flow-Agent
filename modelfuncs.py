@@ -78,8 +78,8 @@ def create_acquisition_function(acq_spec: str) -> Callable:
             return std * (z * norm.cdf(z) + norm.pdf(z))
     
     def upper_confidence_bound(mean, std, best_f, beta=2.0):
-        # Dynamic beta based on iteration
-        return mean - beta * std
+        # Lower confidence bound for minimization, negated so higher = better
+        return -(mean - beta * std)
     
     def probability_improvement(mean, std, best_f, xi=0.01):
         # Add exploration bonus xi
@@ -101,10 +101,10 @@ def create_acquisition_function(acq_spec: str) -> Callable:
     }
     return acquisitions.get(acq_spec.lower(), acquisitions["augmented_ei"])
 
-def create_model(X, y, noise_level=1e-6, kernel_type="matern"):
+def create_model(X, y, noise_level=1e-6, kernel_type="matern", preprocessing="standard"):
     """Create and configure a Gaussian Process model with improved features"""
     n_features = X.shape[1]
-    
+
     # Handle case with no or insufficient data points
     if len(X) < 2:
         print("Warning: Insufficient data points for modeling. Creating dummy model.")
@@ -119,12 +119,18 @@ def create_model(X, y, noise_level=1e-6, kernel_type="matern"):
         X_dummy = np.vstack([X, X + 0.1])  # Add slightly offset point
         y_dummy = np.array([y[0], y[0]])   # Duplicate the single y value
         model.fit(X_dummy, y_dummy)
-        model.scaler_ = StandardScaler().fit(X_dummy)
+        model.scaler_ = create_preprocessor(preprocessing) or StandardScaler()
+        model.scaler_.fit(X_dummy)
         return model
-    
-    # Scale the input features
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+
+    # Scale the input features using the configured preprocessor
+    scaler = create_preprocessor(preprocessing)
+    if scaler is not None:
+        X_scaled = scaler.fit_transform(X)
+    else:
+        # preprocessing="none": no scaling, but store an identity-like scaler for predict_with_model
+        scaler = StandardScaler(with_mean=False, with_std=False)
+        X_scaled = scaler.fit_transform(X)
     
     # Analyze feature importance using simple correlation
     correlations = np.zeros(n_features)
