@@ -874,7 +874,8 @@ class OptimizationWorkflow:
         try:
             # model = create_model(Xtr, ytr, kernel_type=model_config.get("kernel_type", "matern"))
             kernel_type = model_config.get('kernel_type', 'matern') if model_config else 'matern'
-            model = create_model(Xtr, ytr, kernel_type=kernel_type)
+            preprocessing = model_config.get('preprocessing', 'standard') if model_config else 'standard'
+            model = create_model(Xtr, ytr, kernel_type=kernel_type, preprocessing=preprocessing)
             if hasattr(model, 'scaler_'):
                 Xte_scaled = model.scaler_.transform(Xte)
             else:
@@ -1135,7 +1136,8 @@ class OptimizationWorkflow:
             log_data, metrics, model_results, num_runs,
             selection_method=selection_configs['selection']['method'],
             quality_weight=selection_configs['selection']['quality_weight'],
-            uncertainty_bonus=selection_configs['selection']['uncertainty_bonus']
+            uncertainty_bonus=selection_configs['selection']['uncertainty_bonus'],
+            model_config=final_model_config
         )
 
         flow_summary = {
@@ -1523,15 +1525,15 @@ class OptimizationWorkflow:
             model_results = evaluate_timing_model(context)
         elif self.objective == 'DWL':
             model_results = evaluate_wirelength_model(context)
-        
+
         # Add model configuration used
-            model_results['configuration'] = {
-                'kernel_type': kernel_type,
-                'preprocessing': preprocessing,
-                'acquisition': acquisition,
-                'surrogate_weight': surrogate_weight
-            }
-        
+        model_results['configuration'] = {
+            'kernel_type': kernel_type,
+            'preprocessing': preprocessing,
+            'acquisition': acquisition,
+            'surrogate_weight': surrogate_weight
+        }
+
         return model_results
         
     def generate_parameters(self, log_data: Dict[str, Any], metrics: Dict[str, Any],
@@ -1551,11 +1553,12 @@ class OptimizationWorkflow:
         Xtr, Xte, ytr, yte = split
         print(f"[generate_parameters] Using cached training data: Xtr={Xtr.shape}, ytr={ytr.shape}")
         
-        # Get kernel type from model config
+        # Get model config parameters
         kernel_type = model_config.get('kernel_type', 'matern') if model_config else 'matern'
-        print(f"\nCreating surrogate model with {kernel_type} kernel")
-        # model = create_model(X, y, kernel_type=kernel_type)
-        model = create_model(Xtr, ytr, kernel_type=kernel_type)
+        preprocessing = model_config.get('preprocessing', 'standard') if model_config else 'standard'
+        acquisition = model_config.get('acquisition', 'ei') if model_config else 'ei'
+        print(f"\nCreating surrogate model with {kernel_type} kernel, {preprocessing} preprocessing, {acquisition} acquisition")
+        model = create_model(Xtr, ytr, kernel_type=kernel_type, preprocessing=preprocessing)
         print("[generate_parameters] Xtr:")
         print(Xtr)
 
@@ -1614,18 +1617,28 @@ class OptimizationWorkflow:
             else:
                 candidates[n_local:, i] = np.random.uniform(global_min, global_max, size=size_global)
         
-        # Get predictions
-        predictions, uncertainties = model.predict(candidates, return_std=True)
-        
+        # Get predictions (scale candidates to match training space)
+        candidates_scaled = model.scaler_.transform(candidates)
+        predictions, uncertainties = model.predict(candidates_scaled, return_std=True)
+
+        # Compute acquisition function scores to drive candidate selection
+        acq_func = create_acquisition_function(acquisition)
+        best_y = np.min(ytr)
+        acq_scores = acq_func(predictions, uncertainties, best_y)
+
         # Select points
         print(f"\nSelecting points using {selection_method} method")
         print(f"Quality weight: {quality_weight}, Uncertainty bonus: {uncertainty_bonus}")
-        quality_scores = create_quality_scores(candidates, ytr, predictions, uncertainties)
+        quality_scores = create_quality_scores(
+            candidates, ytr, acq_scores, uncertainties,
+            minimize=False,  # acquisition scores: higher = better candidate
+            uncertainty_weight=uncertainty_bonus
+        )
         selected_indices = select_points(
             candidates, quality_scores,
             method=selection_method,
             n_points=num_runs,
-            config={"quality_weight": quality_weight, 
+            config={"quality_weight": quality_weight,
                    "uncertainty_bonus": uncertainty_bonus}
         )
         
