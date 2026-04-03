@@ -8,31 +8,55 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.stats import entropy
 import networkx as nx
 
-def create_quality_scores(X: np.ndarray, y: np.ndarray, model_predictions: np.ndarray, 
-                         model_uncertainties: Optional[np.ndarray] = None) -> np.ndarray:
-    """Create quality scores for points based on model predictions and uncertainties"""
-    # Normalize predictions to [0,1]
-    y_range = np.max(y) - np.min(y)
-    if y_range > 0:
-        normalized_predictions = (model_predictions - np.min(y)) / y_range
+def create_quality_scores(X: np.ndarray, y: np.ndarray, model_predictions: np.ndarray,
+                         model_uncertainties: Optional[np.ndarray] = None,
+                         minimize: bool = True,
+                         uncertainty_weight: float = 0.2) -> np.ndarray:
+    """Create quality scores for points based on model predictions and uncertainties
+
+    Args:
+        model_predictions: Raw GPR predictions or acquisition function scores.
+        minimize: If True, lower predicted values → higher quality (for raw predictions
+                  in a minimization task). If False, higher values → higher quality
+                  (use this when passing acquisition scores like EI where higher = better).
+        uncertainty_weight: Weight for uncertainty in the combined score.
+    """
+    # Normalize predictions to [0,1] using self-range
+    pred_range = np.max(model_predictions) - np.min(model_predictions)
+    if pred_range > 0:
+        if minimize:
+            # Lower prediction → higher quality score
+            normalized_predictions = (np.max(model_predictions) - model_predictions) / pred_range
+        else:
+            # Higher prediction → higher quality score (e.g. for acquisition scores)
+            normalized_predictions = (model_predictions - np.min(model_predictions)) / pred_range
     else:
         normalized_predictions = np.zeros_like(model_predictions)
-    
+
     # Calculate diversity scores using minimum spanning tree
     dist_matrix = squareform(pdist(X))
     mst = minimum_spanning_tree(dist_matrix).toarray()
     diversity_scores = np.sum(mst > 0, axis=1)
-    diversity_scores = (diversity_scores - np.min(diversity_scores)) / (np.max(diversity_scores) - np.min(diversity_scores))
-    
+    div_range = np.max(diversity_scores) - np.min(diversity_scores)
+    if div_range > 0:
+        diversity_scores = (diversity_scores - np.min(diversity_scores)) / div_range
+    else:
+        diversity_scores = np.zeros_like(diversity_scores, dtype=float)
+
     # Combine predictions and diversity
     if model_uncertainties is not None:
         # Normalize uncertainties
-        uncertainties = (model_uncertainties - np.min(model_uncertainties)) / (np.max(model_uncertainties) - np.min(model_uncertainties))
-        # Weighted combination
-        quality_scores = 0.4 * normalized_predictions + 0.4 * diversity_scores + 0.2 * uncertainties
+        unc_range = np.max(model_uncertainties) - np.min(model_uncertainties)
+        if unc_range > 0:
+            uncertainties = (model_uncertainties - np.min(model_uncertainties)) / unc_range
+        else:
+            uncertainties = np.zeros_like(model_uncertainties)
+        # Weighted combination using configurable uncertainty_weight
+        pred_div_weight = (1.0 - uncertainty_weight) / 2.0
+        quality_scores = pred_div_weight * normalized_predictions + pred_div_weight * diversity_scores + uncertainty_weight * uncertainties
     else:
         quality_scores = 0.5 * normalized_predictions + 0.5 * diversity_scores
-    
+
     return quality_scores
 
 def kmeans_select(X: np.ndarray, quality_scores: np.ndarray, n_points: int) -> np.ndarray:
