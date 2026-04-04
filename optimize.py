@@ -279,8 +279,8 @@ class OptimizationWorkflow:
         #     raise ValueError(f"Initial clock period not defined for platform={self.platform}, design={self.design}")
 
         # Calculate clock period range
-        min_clk = self.initial_clk_period * 0.7
-        max_clk = self.initial_clk_period * 1.3
+        min_clk = self.initial_clk_period * 0.75
+        max_clk = self.initial_clk_period * 1.5
 
         # Define parameter names in the expected order
         self.parameter_names = [
@@ -1576,8 +1576,8 @@ class OptimizationWorkflow:
         best_score = ytr[best_idx]
         print(f"\n[Trust Region] Anchoring search around Best Known Score: {best_score:.2f}")
         
-        max_step_ratio = 0.10
-        n_local = int(n_candidates * 0.5) #50% of the candidate points are fine-tuned near the optimal solution, and 50% are kept globally random to prevent local deadlock.
+        max_step_ratio = 0.05
+        n_local = int(n_candidates * 0.7) #50% of the candidate points are fine-tuned near the optimal solution, and 50% are kept globally random to prevent local deadlock.
         size_global = n_candidates - n_local
 
         # Scale candidates to parameter ranges (with trust domain restrictions)
