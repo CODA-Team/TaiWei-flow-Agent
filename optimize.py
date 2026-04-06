@@ -485,6 +485,21 @@ class OptimizationWorkflow:
         
         constraints_text += top_k_context
 
+        # Surface model recommendations from statistical inspection
+        model_rec_text = ""
+        if stage == 'model':
+            model_recs = data.get('metrics', {}).get('model_recommendations', {})
+            if model_recs:
+                model_rec_text = "\n[STATISTICAL ANALYSIS] ### Data-Driven Model Recommendations ###\n"
+                model_rec_text += "These recommendations are derived from statistical analysis of the optimization data structure.\n"
+                model_rec_text += "Consider them as strong hints when configuring the model.\n"
+                model_rec_text += f"- Recommended kernel_type: {model_recs.get('kernel_type', 'N/A')}\n"
+                model_rec_text += f"- Feature scaling needed: {model_recs.get('needs_feature_scaling', True)}\n"
+                model_rec_text += f"- Use feature weights: {model_recs.get('use_feature_weights', False)}\n"
+                if model_recs.get('feature_weights'):
+                    model_rec_text += f"- Feature importance scores: {model_recs['feature_weights']}\n"
+                model_rec_text += f"- Needs local models: {model_recs.get('needs_local_models', False)}\n"
+
         prompt = f"""**stages:{stage.upper()}**
 
         Current Stage: {stage.upper()}
@@ -495,8 +510,10 @@ class OptimizationWorkflow:
         You are an expert Bayesian optimization engineer working with OpenROAD.
 
         {stage_descriptions[stage]}
-       
+
         {constraints_text}
+
+        {model_rec_text}
 
         {self.tool_instructions.get(stage, '')}
         
@@ -875,7 +892,8 @@ class OptimizationWorkflow:
             # model = create_model(Xtr, ytr, kernel_type=model_config.get("kernel_type", "matern"))
             kernel_type = model_config.get('kernel_type', 'matern') if model_config else 'matern'
             preprocessing = model_config.get('preprocessing', 'standard') if model_config else 'standard'
-            model = create_model(Xtr, ytr, kernel_type=kernel_type, preprocessing=preprocessing)
+            feature_weights = metrics.get('model_recommendations', {}).get('feature_weights', None)
+            model = create_model(Xtr, ytr, kernel_type=kernel_type, preprocessing=preprocessing, feature_weights=feature_weights)
             if hasattr(model, 'scaler_'):
                 Xte_scaled = model.scaler_.transform(Xte)
             else:
@@ -891,21 +909,35 @@ class OptimizationWorkflow:
     def _react_model_stage(self, metrics: Dict[str, Any], init_cfg: Dict[str, Any],log_data: Dict[str, Any],
         initial_params: Dict[str, Any], sdc_context: Dict[str, Any], inspection_results: Dict[str, Any], max_iters=3):
 
-        current_cfg = init_cfg or {"kernel_type": "matern", "preprocessing": "robust", "acquisition": "ei", "surrogate_weight": 0.8}
+        # Build fallback config from statistical recommendations
+        model_recs = metrics.get('model_recommendations', {})
+        rec_kernel = model_recs.get('kernel_type', 'matern')
+        if rec_kernel == 'composite':
+            rec_kernel = 'matern'  # composite maps to matern in create_model
+        rec_preprocessing = 'robust' if model_recs.get('needs_feature_scaling', True) else 'none'
+
+        default_cfg = {
+            "kernel_type": rec_kernel,
+            "preprocessing": rec_preprocessing,
+            "acquisition": "ei",
+            "surrogate_weight": 0.8
+        }
+        current_cfg = init_cfg or default_cfg
 
         print(f"\n=== [ReAct] Starting Optimization Loop (Max Iters: {max_iters}) ===")
 
 
         inspect_suggestion = json.dumps(inspection_results.get('inspection', {}), indent=2)
-        
+        model_rec_suggestion = json.dumps(model_recs, indent=2) if model_recs else "{}"
+
         system_prompt = (
             "You are an expert EDA optimization engineer operating in a ReAct loop.\n\n"
             f"{self.tool_instructions.get('model', '')}\n\n"
             "=== Context Information ===\n"
-            # f"- Total Runs: {total_runs} (Successful: {success_runs})\n"
-            # f"- Design Constraints (SDC): Clock Period = {clock_period}\n"
-            # f"- Initial Parameters: {json.dumps(initial_params)}\n"
-            f"- Inspection Stage Analysis: {inspect_suggestion}\n\n"
+            f"- Inspection Stage Analysis: {inspect_suggestion}\n"
+            f"- Statistical Model Recommendations (data-driven): {model_rec_suggestion}\n"
+            f"  (Hints: recommended kernel, feature scaling, feature weights. "
+            f"Use as defaults unless GPR feedback suggests otherwise.)\n\n"
             "Task: Analyze the GPR model feedback (dy/rel error) combined with the context above, "
             "and iteratively refine the configuration parameters."
         )
@@ -1560,7 +1592,8 @@ class OptimizationWorkflow:
         preprocessing = model_config.get('preprocessing', 'standard') if model_config else 'standard'
         acquisition = model_config.get('acquisition', 'ei') if model_config else 'ei'
         print(f"\nCreating surrogate model with {kernel_type} kernel, {preprocessing} preprocessing, {acquisition} acquisition")
-        model = create_model(Xtr, ytr, kernel_type=kernel_type, preprocessing=preprocessing)
+        feature_weights = metrics.get('model_recommendations', {}).get('feature_weights', None)
+        model = create_model(Xtr, ytr, kernel_type=kernel_type, preprocessing=preprocessing, feature_weights=feature_weights)
         print("[generate_parameters] Xtr:")
         print(Xtr)
 
@@ -1579,7 +1612,7 @@ class OptimizationWorkflow:
         print(f"\n[Trust Region] Anchoring search around Best Known Score: {best_score:.2f}")
         
         max_step_ratio = 0.05
-        n_local = int(n_candidates * 0.7) #50% of the candidate points are fine-tuned near the optimal solution, and 50% are kept globally random to prevent local deadlock.
+        n_local = int(n_candidates * 0.8) #50% of the candidate points are fine-tuned near the optimal solution, and 50% are kept globally random to prevent local deadlock.
         size_global = n_candidates - n_local
 
         # Scale candidates to parameter ranges (with trust domain restrictions)
