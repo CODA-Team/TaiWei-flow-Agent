@@ -255,17 +255,25 @@ def evaluate_timing_model(context: dict) -> dict:
     # Analyze timing correlations with improved metrics
     correlations = metrics.get('correlations', {})
     if correlations.get('real_vs_surrogate'):
-        surrogate_correlation = sum(
-            x['real'] * x['surrogate'] for x in correlations['real_vs_surrogate']
-        ) / len(correlations['real_vs_surrogate'])
-        model_results['performance']['surrogate_correlation'] = surrogate_correlation
-        
-        if surrogate_correlation > 0.8:
-            model_results['suggestions'].append(
-                "Strong surrogate correlation - increase surrogate weight")
-        elif surrogate_correlation < 0.5:
-            model_results['suggestions'].append(
-                "Weak surrogate correlation - reduce surrogate weight")
+        real = np.asarray([x['real'] for x in correlations['real_vs_surrogate']], dtype=float)
+        surrogate = np.asarray([x['surrogate'] for x in correlations['real_vs_surrogate']], dtype=float)
+        if len(real) > 1 and np.std(real) > 0 and np.std(surrogate) > 0:
+            surrogate_correlation = float(np.corrcoef(real, surrogate)[0, 1])
+            model_results['performance']['surrogate_correlation'] = surrogate_correlation
+
+            abs_gap = float(np.mean(np.abs(real - surrogate)))
+            model_results['performance']['surrogate_abs_gap'] = abs_gap
+            
+            if surrogate_correlation > 0.8:
+                model_results['suggestions'].append(
+                    "Strong surrogate correlation - increase surrogate weight")
+            elif surrogate_correlation < 0.5:
+                model_results['suggestions'].append(
+                    "Weak surrogate correlation - reduce surrogate weight")
+
+            if abs_gap > max(0.05, 0.5 * np.std(real)):
+                model_results['suggestions'].append(
+                    "Timing surrogate gap is large; validate more runs with final timing metrics.")
     
     # Add model recommendations from structure analysis
     if model_recommendations:
@@ -311,6 +319,80 @@ def evaluate_wirelength_model(context: dict) -> dict:
     if model_recommendations:
         model_results['recommendations'] = model_recommendations
                 
+    return model_results
+
+def evaluate_combo_model(context: dict) -> dict:
+    """Evaluate combined ECP/WL objective behavior using normalized combo labels."""
+    model_results = {
+        'performance': {},
+        'suggestions': []
+    }
+
+    metrics = context.get('metrics', {})
+    model_recommendations = context.get('model_recommendations', {})
+
+    objectives = metrics.get('objectives', [])
+    surrogates = metrics.get('surrogates', [])
+    if not objectives:
+        model_results['suggestions'].append(
+            "No COMBO objective data available yet. Using default model configuration.")
+        return model_results
+
+    valid_objectives = np.asarray(objectives, dtype=float)
+    model_results['performance']['combo_mean'] = float(np.mean(valid_objectives))
+    model_results['performance']['combo_std'] = float(np.std(valid_objectives))
+    model_results['performance']['combo_best'] = float(np.min(valid_objectives))
+    model_results['performance']['n_objective_samples'] = int(len(valid_objectives))
+
+    # Since the COMBO label is a baseline-normalized minimization objective,
+    # negative values indicate improvement relative to baseline.
+    improved_ratio = float(np.mean(valid_objectives < 0))
+    model_results['performance']['improved_ratio'] = improved_ratio
+    if improved_ratio > 0.5:
+        model_results['suggestions'].append(
+            "More than half of COMBO samples beat baseline; tighten local search around strong regions.")
+    elif improved_ratio < 0.1:
+        model_results['suggestions'].append(
+            "Few COMBO samples beat baseline; increase exploration and revisit parameter ranges.")
+
+    if surrogates:
+        valid_surrogates = np.asarray(surrogates, dtype=float)
+        model_results['performance']['combo_surrogate_mean'] = float(np.mean(valid_surrogates))
+        model_results['performance']['combo_surrogate_std'] = float(np.std(valid_surrogates))
+
+    correlations = metrics.get('correlations', {})
+    if correlations.get('real_vs_surrogate'):
+        real = np.asarray([x['real'] for x in correlations['real_vs_surrogate']], dtype=float)
+        surrogate = np.asarray([x['surrogate'] for x in correlations['real_vs_surrogate']], dtype=float)
+        if len(real) > 1 and np.std(real) > 0 and np.std(surrogate) > 0:
+            surrogate_corr = float(np.corrcoef(real, surrogate)[0, 1])
+            model_results['performance']['surrogate_correlation'] = surrogate_corr
+
+            abs_gap = float(np.mean(np.abs(real - surrogate)))
+            model_results['performance']['surrogate_abs_gap'] = abs_gap
+
+            if surrogate_corr > 0.8:
+                model_results['suggestions'].append(
+                    "COMBO surrogate tracks final objective well; trust proxy-guided exploitation more.")
+            elif surrogate_corr < 0.5:
+                model_results['suggestions'].append(
+                    "COMBO surrogate is weakly aligned with final objective; emphasize exploration and final-metric validation.")
+
+            if abs_gap > max(0.05, 0.5 * np.std(real)):
+                model_results['suggestions'].append(
+                    "The COMBO surrogate gap is large; avoid over-committing to CTS-driven signals.")
+
+    distribution = metrics.get('distribution_analysis', {})
+    y_missing_ratio = distribution.get('y_missing_ratio')
+    if y_missing_ratio is not None:
+        model_results['performance']['y_missing_ratio'] = float(y_missing_ratio)
+        if y_missing_ratio > 0.3:
+            model_results['suggestions'].append(
+                "Many final COMBO labels are missing; surrogate fallback is active often, so diversify candidates.")
+
+    if model_recommendations:
+        model_results['recommendations'] = model_recommendations
+
     return model_results
 
 def predict_with_model(model, X_new):
