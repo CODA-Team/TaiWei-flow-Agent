@@ -46,6 +46,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": 399.70,
+        "wl_base": 74005
       }
     },
     {
@@ -64,6 +68,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": 439.37,
+        "wl_base": 59207
       }
     },
     {
@@ -105,6 +113,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -123,6 +135,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -164,6 +180,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -182,6 +202,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -223,6 +247,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -241,6 +269,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -282,6 +314,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": 0.82,
+        "wl_base": 281790
       }
     },
     {
@@ -300,6 +336,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": 1.11,
+        "wl_base": 210518
       }
     },
     {
@@ -341,6 +381,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": 1235.45,
+        "wl_base": 100116
       }
     },
     {
@@ -359,6 +403,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": 1744.49,
+        "wl_base": 79216
       }
     },
     {
@@ -400,6 +448,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -418,6 +470,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -459,6 +515,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -477,6 +537,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -518,6 +582,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -536,6 +604,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -577,6 +649,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": 2.07,
+        "wl_base": 288583
       }
     },
     {
@@ -595,6 +671,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": 2.84,
+        "wl_base": 237672
       }
     },
     {
@@ -636,6 +716,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": 623.72,
+        "wl_base": 177861
       }
     },
     {
@@ -654,6 +738,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": 625.01,
+        "wl_base": 158620
       }
     },
     {
@@ -695,6 +783,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -713,6 +805,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -754,6 +850,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -772,6 +872,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -813,6 +917,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": 1.11,
+        "wl_base": 652867
       }
     },
     {
@@ -831,6 +939,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": 1.31,
+        "wl_base": 524431
       }
     },
     {
@@ -872,6 +984,10 @@
       "weights_surrogate": {
         "ecp": 1.0,
         "dwl": 0.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -890,6 +1006,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
@@ -908,6 +1028,10 @@
       "weights_surrogate": {
         "ecp": 0.0,
         "dwl": 1.0
+      },
+      "baseline": {
+        "ecp_base": null,
+        "wl_base": null
       }
     },
     {
