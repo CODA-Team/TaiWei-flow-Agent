@@ -101,7 +101,7 @@ def create_acquisition_function(acq_spec: str) -> Callable:
     }
     return acquisitions.get(acq_spec.lower(), acquisitions["augmented_ei"])
 
-def create_model(X, y, noise_level=1e-6, kernel_type="matern", preprocessing="standard"):
+def create_model(X, y, noise_level=1e-6, kernel_type="matern", preprocessing="standard", feature_weights=None):
     """Create and configure a Gaussian Process model with improved features"""
     n_features = X.shape[1]
 
@@ -132,12 +132,15 @@ def create_model(X, y, noise_level=1e-6, kernel_type="matern", preprocessing="st
         scaler = StandardScaler(with_mean=False, with_std=False)
         X_scaled = scaler.fit_transform(X)
     
-    # Analyze feature importance using simple correlation
-    correlations = np.zeros(n_features)
-    if len(y) > 1:  # Only compute correlations if we have enough points
-        correlations = np.array([np.abs(np.corrcoef(X[:, i], y)[0, 1]) for i in range(n_features)])
+    # Use provided feature weights if available, otherwise compute from data
+    if feature_weights is not None and len(feature_weights) == n_features:
+        correlations = np.array(feature_weights, dtype=float)
+    else:
+        correlations = np.zeros(n_features)
+        if len(y) > 1:  # Only compute correlations if we have enough points
+            correlations = np.array([np.abs(np.corrcoef(X[:, i], y)[0, 1]) for i in range(n_features)])
     important_features = correlations > np.mean(correlations)
-    
+
     # Create adaptive length scales based on feature importance
     length_scales = np.ones(n_features)
     length_scales[important_features] = 0.5  # Shorter length scales for important features
@@ -278,7 +281,17 @@ def evaluate_timing_model(context: dict) -> dict:
     # Add model recommendations from structure analysis
     if model_recommendations:
         model_results['recommendations'] = model_recommendations
-                
+        rec_kernel = model_recommendations.get('kernel_type', '')
+        if rec_kernel and rec_kernel != 'matern':
+            model_results['suggestions'].append(
+                f"Data analysis suggests '{rec_kernel}' kernel may fit better than default Matern.")
+        if model_recommendations.get('needs_local_models', False):
+            model_results['suggestions'].append(
+                "Cluster differences detected; consider local surrogate models.")
+        if model_recommendations.get('use_feature_weights', False):
+            model_results['suggestions'].append(
+                "Feature importance varies significantly; weighted length scales recommended.")
+
     return model_results
 
 def evaluate_wirelength_model(context: dict) -> dict:
@@ -318,7 +331,17 @@ def evaluate_wirelength_model(context: dict) -> dict:
     # Add model recommendations from structure analysis
     if model_recommendations:
         model_results['recommendations'] = model_recommendations
-                
+        rec_kernel = model_recommendations.get('kernel_type', '')
+        if rec_kernel and rec_kernel != 'matern':
+            model_results['suggestions'].append(
+                f"Data analysis suggests '{rec_kernel}' kernel may fit better than default Matern.")
+        if model_recommendations.get('needs_local_models', False):
+            model_results['suggestions'].append(
+                "Cluster differences detected; consider local surrogate models.")
+        if model_recommendations.get('use_feature_weights', False):
+            model_results['suggestions'].append(
+                "Feature importance varies significantly; weighted length scales recommended.")
+
     return model_results
 
 def evaluate_combo_model(context: dict) -> dict:
@@ -392,6 +415,16 @@ def evaluate_combo_model(context: dict) -> dict:
 
     if model_recommendations:
         model_results['recommendations'] = model_recommendations
+        rec_kernel = model_recommendations.get('kernel_type', '')
+        if rec_kernel and rec_kernel != 'matern':
+            model_results['suggestions'].append(
+                f"Data analysis suggests '{rec_kernel}' kernel may fit better than default Matern.")
+        if model_recommendations.get('needs_local_models', False):
+            model_results['suggestions'].append(
+                "Cluster differences detected; consider local surrogate models.")
+        if model_recommendations.get('use_feature_weights', False):
+            model_results['suggestions'].append(
+                "Feature importance varies significantly; weighted length scales recommended.")
 
     return model_results
 
