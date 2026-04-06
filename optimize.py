@@ -1525,6 +1525,8 @@ class OptimizationWorkflow:
             model_results = evaluate_timing_model(context)
         elif self.objective == 'DWL':
             model_results = evaluate_wirelength_model(context)
+        elif self.objective == 'COMBO':
+            model_results = evaluate_combo_model(context)
 
         # Add model configuration used
         model_results['configuration'] = {
@@ -1682,42 +1684,72 @@ class OptimizationWorkflow:
         """Calculate objective value and surrogate from run metrics"""
         metrics = run.get('metrics', {})
         result = {'value': None, 'surrogate': None}
+
+        baseline = self.design_config.get('baseline', {})
+
+        def get_positive_baseline(key: str) -> float:
+            try:
+                value = float(baseline[key])
+            except (KeyError, ValueError, TypeError) as e:
+                raise ValueError(
+                    f"Objective {self.objective} requires baseline.{key} in opt_config.json."
+                ) from e
+            if value <= 0:
+                raise ValueError(f"Baseline {key} must be positive.")
+            return value
+
+        def improvement_ratio(current_value: Optional[float], base_value: float) -> Optional[float]:
+            if current_value is None:
+                return None
+            # Minimization-oriented improvement ratio:
+            # negative means better than baseline, positive means worse.
+            return (float(current_value) - base_value) / base_value
         
         if self.objective == 'ECP':
+            ecp_base = get_positive_baseline('ecp_base')
             if 'ecp' in metrics:
-                result['value'] = float(metrics['ecp'])
+                result['value'] = improvement_ratio(float(metrics['ecp']), ecp_base)
                 if 'clock_period' in metrics:
                     period = float(metrics['clock_period'])
                     # Surrogate ECP from CTS worst slack
                     if 'cts_ws' in metrics:
-                        result['surrogate'] = period - float(metrics['cts_ws'])
+                        result['surrogate'] = improvement_ratio(period - float(metrics['cts_ws']), ecp_base)
             elif 'clock_period' in metrics:
                 period = float(metrics['clock_period'])
                 # Real ECP from final worst slack
                 if 'worst_slack' in metrics:
-                    result['value'] = period - float(metrics['worst_slack'])
+                    result['value'] = improvement_ratio(period - float(metrics['worst_slack']), ecp_base)
                 # Surrogate ECP from CTS worst slack
                 if 'cts_ws' in metrics:
-                    result['surrogate'] = period - float(metrics['cts_ws'])
+                    result['surrogate'] = improvement_ratio(period - float(metrics['cts_ws']), ecp_base)
                     
         elif self.objective == 'DWL':
+            wl_base = get_positive_baseline('wl_base')
             # Real wirelength from detailed route
             if 'total_wirelength' in metrics:
-                result['value'] = float(metrics['total_wirelength'])
+                result['value'] = improvement_ratio(float(metrics['total_wirelength']), wl_base)
             # Surrogate wirelength from CTS
             if 'cts_wirelength' in metrics:
-                result['surrogate'] = float(metrics['cts_wirelength'])
+                result['surrogate'] = improvement_ratio(float(metrics['cts_wirelength']), wl_base)
                 
         elif self.objective == 'COMBO':
-            # Get weights from environment variables
+            weights = self.design_config.get('weights', {})
+            surrogate_weights = self.design_config.get('weights_surrogate', {})
+
             try:
-                ecp_weight = float(os.environ.get('ECP_WEIGHT'))
-                wl_weight = float(os.environ.get('WL_WEIGHT'))
-                ecp_weight_surrogate = float(os.environ.get('ECP_WEIGHT_SURROGATE'))
-                wl_weight_surrogate = float(os.environ.get('WL_WEIGHT_SURROGATE'))
-            except (ValueError, TypeError):
-                raise ValueError("Weights not properly set in environment variables.")
-            
+                ecp_weight = float(weights['ecp'])
+                wl_weight = float(weights['dwl'])
+                ecp_weight_surrogate = float(surrogate_weights['ecp'])
+                wl_weight_surrogate = float(surrogate_weights['dwl'])
+                ecp_base = get_positive_baseline('ecp_base')
+                wl_base = get_positive_baseline('wl_base')
+            except (KeyError, ValueError, TypeError) as e:
+                raise ValueError(
+                    "COMBO objective requires weights.ecp, weights.dwl, "
+                    "weights_surrogate.ecp, weights_surrogate.dwl, "
+                    "baseline.ecp_base, and baseline.wl_base in opt_config.json."
+                ) from e
+
             # Calculate real ECP and WL values
             ecp_value = None
             wl_value = None
@@ -1725,8 +1757,8 @@ class OptimizationWorkflow:
                 clock_period = float(metrics['clock_period'])
                 if 'worst_slack' in metrics:
                     ecp_value = clock_period - float(metrics['worst_slack'])
-                if 'total_wirelength' in metrics:
-                    wl_value = float(metrics['total_wirelength'])
+            if 'total_wirelength' in metrics:
+                wl_value = float(metrics['total_wirelength'])
 
             # Calculate surrogate ECP and WL values
             ecp_surrogate = None
@@ -1735,24 +1767,31 @@ class OptimizationWorkflow:
                 clock_period = float(metrics['clock_period'])
                 if 'cts_ws' in metrics:
                     ecp_surrogate = clock_period - float(metrics['cts_ws'])
-                if 'cts_wirelength' in metrics:
-                    wl_surrogate = float(metrics['cts_wirelength'])
+            if 'cts_wirelength' in metrics:
+                wl_surrogate = float(metrics['cts_wirelength'])
 
-            # Calculate weighted objective for real values
-            if ecp_value is not None and wl_value is not None:
-                result['value'] = ecp_weight * ecp_value + wl_weight * wl_value
-            elif ecp_value is not None:
-                result['value'] = ecp_weight * ecp_value
-            elif wl_value is not None:
-                result['value'] = wl_weight * wl_value
+            # Normalize both objectives by their baseline and combine with one shared weight set.
+            ecp_value_ratio = improvement_ratio(ecp_value, ecp_base)
+            wl_value_ratio = improvement_ratio(wl_value, wl_base)
+            ecp_surrogate_ratio = improvement_ratio(ecp_surrogate, ecp_base)
+            wl_surrogate_ratio = improvement_ratio(wl_surrogate, wl_base)
 
-            # Calculate weighted surrogate objective
-            if ecp_surrogate is not None and wl_surrogate is not None:
-                result['surrogate'] = ecp_weight_surrogate * ecp_surrogate + wl_weight_surrogate * wl_surrogate
-            elif ecp_surrogate is not None:
-                result['surrogate'] = ecp_weight_surrogate * ecp_surrogate
-            elif wl_surrogate is not None:
-                result['surrogate'] = wl_weight_surrogate * wl_surrogate
+            if ecp_value_ratio is not None and wl_value_ratio is not None:
+                result['value'] = ecp_weight * ecp_value_ratio + wl_weight * wl_value_ratio
+            elif ecp_value_ratio is not None:
+                result['value'] = ecp_weight * ecp_value_ratio
+            elif wl_value_ratio is not None:
+                result['value'] = wl_weight * wl_value_ratio
+
+            if ecp_surrogate_ratio is not None and wl_surrogate_ratio is not None:
+                result['surrogate'] = (
+                    ecp_weight_surrogate * ecp_surrogate_ratio
+                    + wl_weight_surrogate * wl_surrogate_ratio
+                )
+            elif ecp_surrogate_ratio is not None:
+                result['surrogate'] = ecp_weight_surrogate * ecp_surrogate_ratio
+            elif wl_surrogate_ratio is not None:
+                result['surrogate'] = wl_weight_surrogate * wl_surrogate_ratio
 
         return result
     
