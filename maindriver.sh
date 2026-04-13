@@ -76,8 +76,8 @@ if [[ "$design" != "aes" && "$design" != "ibex" && "$design" != "jpeg" ]]; then
 fi
 
 # Validate objective
-if [[ "$objective" != "ECP" && "$objective" != "DWL" && "$objective" != "COMBO" ]]; then
-    echo "Error: objective must be one of: ECP, DWL, COMBO"
+if [[ "$objective" != "ECP" && "$objective" != "DWL" && "$objective" != "COMBO" && "$objective" != "TNS_EVAL" ]]; then
+    echo "Error: objective must be one of: ECP, DWL, COMBO, TNS_EVAL"
     exit 1
 fi
 
@@ -245,6 +245,13 @@ for i in $(seq 1 $TOTAL_ITERS); do
     timeout "$TIMEOUT" ./run_parallel.sh "$platform" "$design" "$PARALLEL_RUNS" "$i" || true
     
     # Kill any remaining parallel jobs
+
+    # Re-evaluate TNS under fixed reference clock CP_0
+    # (iter 1: compute CP_0 from default run's ECP * 0.9, then evaluate all runs;
+    #  iter 2+: reuse saved CP_0)
+    echo "Starting TNS re-evaluation under CP_0..."
+    ./eval_tns.sh "$platform" "$design" "$PARALLEL_RUNS" "$i"
+    echo "TNS re-evaluation complete."
 
     echo "Start backup."
     # Create backup of this iteration's results
