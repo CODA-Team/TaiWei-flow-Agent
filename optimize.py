@@ -103,12 +103,17 @@ def extract_timing_metrics(log_content: str) -> Dict[str, float]:
         metrics['tns'] = float(tns_match.group(1))
 
     ecp_match = re.search(
-        r'Report metrics stage 6, finish[\s\S]*?(?:core_)?cl[ock]*\s+period_min\s*=\s*([-\d.]+)', 
+        r'Report metrics stage 6, finish[\s\S]*?(?:core_)?cl[ock]*\s+period_min\s*=\s*([-\d.]+)',
         log_content
     )
     if ecp_match:
         metrics['ecp'] = float(ecp_match.group(1))
-        
+
+    # Extract re-evaluated TNS under fixed CP_0 (appended by eval_tns.sh)
+    tns_eval_match = re.search(r'\[TNS_EVAL\] tns_eval = ([-\d.eE+]+)', log_content)
+    if tns_eval_match:
+        metrics['tns_eval'] = float(tns_eval_match.group(1))
+
     return metrics
 
 
@@ -1825,6 +1830,17 @@ class OptimizationWorkflow:
                 result['surrogate'] = ecp_weight_surrogate * ecp_surrogate_ratio
             elif wl_surrogate_ratio is not None:
                 result['surrogate'] = wl_weight_surrogate * wl_surrogate_ratio
+
+        elif self.objective == 'TNS_EVAL':
+            # Optimize TNS evaluated under fixed reference clock CP_0.
+            # tns_eval is appended to logs by eval_tns.sh after each iteration.
+            # TNS is always <= 0 (negative = timing violation); closer to 0 is better.
+            # We use raw tns_eval as the objective (minimize absolute value, i.e. maximize toward 0).
+            if 'tns_eval' in metrics:
+                result['value'] = float(metrics['tns_eval'])
+            # Surrogate: use CTS-stage worst-slack as early indicator
+            if 'cts_ws' in metrics:
+                result['surrogate'] = float(metrics['cts_ws'])
 
         return result
     
