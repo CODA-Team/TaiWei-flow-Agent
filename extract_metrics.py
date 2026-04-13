@@ -211,6 +211,7 @@ def build_markdown(rows: List[Dict], source_root: Path) -> str:
         ("wns", "wns", ".4f"),
         ("tns", "tns", ".4f"),
         ("tns_eval", "tns_eval", ".4f"),
+        ("CP_0", "cp0", ""),
     ]
     param_cols = [
         ("clk_period", "clk_period", ""),
@@ -285,6 +286,15 @@ def main() -> None:
         ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
         output_path = repo_root / "output_results" / f"{platform}_{design}_{ts}.md"
 
+    # Read CP_0 (shared across all runs, written by eval_tns.sh)
+    cp0_file = repo_root / "designs" / platform / design / "cp0.txt"
+    cp0_value = None
+    if cp0_file.is_file():
+        try:
+            cp0_value = cp0_file.read_text().strip()
+        except Exception:
+            pass
+
     print(f"Scanning for result_dump_* directories in: {source_root}")
 
     rows = []
@@ -304,6 +314,7 @@ def main() -> None:
             "task_id": task_id,
             **metrics,
             "clk_period": clk_period,
+            "cp0": cp0_value,
             **params,
         }
         rows.append(row)
