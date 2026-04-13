@@ -60,26 +60,25 @@ else
 fi
 
 # --- Helper: extract ECP from a run's log ---
-# Looks for "clock period_min = <value>" in the Report metrics stage 6 section,
-# or computes ECP = clock_period - worst_slack as fallback.
+# Extract ECP from the "Report metrics stage 6, finish" section of a log file.
+# Uses Python with the same regex as optimize.py to ensure consistency.
 extract_ecp_from_log() {
     local log_file=$1
-    # Try direct ECP (clock_period_min) from stage 6
-    local ecp
-    ecp=$(grep -oP 'cl(ock)?\s*period_min\s*=\s*\K[-\d.]+' "$log_file" | tail -1)
-    if [ -n "$ecp" ]; then
-        echo "$ecp"
-        return
-    fi
-    # Fallback: clock_period - worst_slack
-    local period wns
-    period=$(grep -oP 'clock period to\s*\K[\d.]+' "$log_file" | tail -1)
-    wns=$(grep -oP 'wns max\s+\K[-\d.]+' "$log_file" | tail -1)
-    if [ -n "$period" ] && [ -n "$wns" ]; then
-        echo "$period $wns" | awk '{printf "%.4f", $1 - $2}'
-        return
-    fi
-    echo ""
+    python3 -c "
+import re, sys
+content = open(sys.argv[1]).read()
+# Primary: clock_period_min from stage 6 finish (same regex as optimize.py)
+m = re.search(r'Report metrics stage 6, finish[\s\S]*?(?:core_)?cl[ock]*\s+period_min\s*=\s*([-\d.]+)', content)
+if m:
+    print(m.group(1))
+    sys.exit(0)
+# Fallback: clock_period - worst_slack from stage 6
+p = re.search(r'clock period to\s*([\d.]+)', content)
+w = re.search(r'Report metrics stage 6, finish[\s\S]*?wns max\s+([-\d.]+)', content)
+if p and w:
+    print(f'{float(p.group(1)) - float(w.group(1)):.4f}')
+    sys.exit(0)
+" "$log_file"
 }
 
 # ============================================================
