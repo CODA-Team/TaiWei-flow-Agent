@@ -250,7 +250,7 @@ for i in $(seq 1 $TOTAL_ITERS); do
     # (iter 1: compute CP_0 from default run's ECP * 0.9, then evaluate all runs;
     #  iter 2+: reuse saved CP_0)
     echo "Starting TNS re-evaluation under CP_0..."
-    ./eval_tns.sh "$platform" "$design" "$PARALLEL_RUNS" "$i"
+    bash eval_tns.sh "$platform" "$design" "$PARALLEL_RUNS" "$i"
     echo "TNS re-evaluation complete."
 
     echo "Start backup."
