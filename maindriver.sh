@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Default values
-TOTAL_ITERS=10
-PARALLEL_RUNS=8
+TOTAL_ITERS=6
+PARALLEL_RUNS=25
 TIMEOUT="120m"
 TOTAL_CPUS=130
 TOTAL_RAM=200
@@ -222,7 +222,7 @@ create_backup() {
     # Move logs
     mkdir -p "$backup_dir/logs_dump"
     mv logs/${platform}/${design}/* "$backup_dir/logs_dump"/ 2>/dev/null
-    cp logs/${platform}_${design}* "$backup_dir/logs_dump"/ 2>/dev/null
+    cp logs/* "$backup_dir/logs_dump"/ 2>/dev/null
     
     # Move results
     mkdir -p "$backup_dir/results_dump"
@@ -242,7 +242,7 @@ for i in $(seq 1 $TOTAL_ITERS); do
     ./run_sequential.sh "$platform" "$design" "$PARALLEL_RUNS" "$i"
     echo "./run_sequential.sh \"$platform\" \"$design\" \"$PARALLEL_RUNS\" \"$i\""
     # Run parallel phase with timeout
-    timeout "$TIMEOUT" ./run_parallel.sh "$platform" "$design" "$PARALLEL_RUNS" || true
+    timeout "$TIMEOUT" ./run_parallel.sh "$platform" "$design" "$PARALLEL_RUNS" "$i" || true
     
     # Kill any remaining parallel jobs
 
@@ -253,13 +253,9 @@ for i in $(seq 1 $TOTAL_ITERS); do
     # Generate constraints for next iteration (skip for last iteration)
     if [ "$i" -lt "$TOTAL_ITERS" ]; then
         echo "Running optimization for next iteration..."
-        # python3 optimize_textgrad_v12.py "$platform" "$design" "$objective" "$PARALLEL_RUNS" 
         python3 optimize.py "$platform" "$design" "$objective" "$PARALLEL_RUNS" 
         echo "python3 optimize.py \"$platform\" \"$design\" \"$objective\" \"$PARALLEL_RUNS\" \"$i\""
     fi
-
-    # # Create backup of this iteration's results
-    # create_backup "$platform" "$design" "$i"
 
 done
 
