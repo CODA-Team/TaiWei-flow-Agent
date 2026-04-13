@@ -1,17 +1,27 @@
 #!/bin/bash
 
 # Ensure correct number of arguments
-if [ $# -ne 3 ]; then
-    echo "Usage: $0 <platform> <design> <parallel_runs>"
+if [ $# -ne 4 ]; then
+    echo "Usage: $0 <platform> <design> <parallel_runs> <iteration>"
     echo "platform: asap7 or sky130hd or nangate45"
     echo "design: aes, ibex, or jpeg"
     echo "parallel_runs: number of parallel runs"
+    echo "iteration: current iteration index (1-based)"
     exit 1
 fi
 
 platform=$1
 design=$2
 parallel_runs=$3
+iteration=$4
+
+# Iteration 1 runs one extra "default" baseline task (config_(N+1).mk generated
+# by run_sequential.sh from the unperturbed config.mk). Resource split is done
+# against this effective count so all 26 tasks share CPUs/RAM evenly.
+if [ "$iteration" -eq 1 ]; then
+    parallel_runs=$((parallel_runs + 1))
+    echo "[run_parallel.sh] Iteration 1: running $parallel_runs tasks (25 perturbed + 1 default baseline)"
+fi
 
 export PLATFORM=$platform
 export DESIGN=$design
@@ -28,8 +38,8 @@ if [[ ! "$design" =~ ^(aes|ibex|jpeg)$ ]]; then
 fi
 
 # Get resource limits from environment or use defaults
-TIMEOUT=${TIMEOUT:-"45m"}
-TOTAL_CPUS=${TOTAL_CPUS:-130}
+TIMEOUT=${TIMEOUT:-"120m"}
+TOTAL_CPUS=${TOTAL_CPUS:-100}
 TOTAL_RAM=${TOTAL_RAM:-200}
 
 # Calculate resources per run
@@ -86,4 +96,3 @@ wait
 
 
 echo "All tasks completed" 
-
