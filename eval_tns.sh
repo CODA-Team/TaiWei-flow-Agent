@@ -146,17 +146,19 @@ for ((i=1; i<=effective_runs; i++)); do
     echo "[eval_tns.sh] Evaluating run $i ..."
     eval_output=$($OPENROAD_EXE -exit "${SCRIPT_DIR}/eval_tns.tcl" 2>&1) || true
 
-    # Extract tns_eval value from OpenROAD output
-    tns_val=$(echo "$eval_output" | grep -oP 'tns_eval = \K[-\d.eE+]+' | tail -1)
+    # Extract TNS from report_tns output (format: "tns -12345.67")
+    # report_tns outputs: "tns <value>" where value is negative or zero
+    tns_val=$(echo "$eval_output" | grep -oP '^\s*tns\s+\K[-\d.eE+]+' | tail -1)
+    # Also capture WNS for debugging
+    wns_val=$(echo "$eval_output" | grep -oP '^\s*wns\s+\K[-\d.eE+]+' | tail -1)
 
     if [ -n "$tns_val" ]; then
         echo "[TNS_EVAL] tns_eval = $tns_val" >> "$run_log"
-        echo "  run $i: tns_eval = $tns_val"
+        echo "  run $i: tns_eval = $tns_val (wns_eval = ${wns_val:-N/A})"
     else
         echo "[TNS_EVAL] tns_eval = N/A (extraction_failed)" >> "$run_log"
-        echo "  run $i: tns_eval extraction failed"
-        # Dump last 20 lines for debugging
-        echo "$eval_output" | tail -20
+        echo "  run $i: tns_eval extraction failed, dumping last 30 lines:"
+        echo "$eval_output" | tail -30
     fi
 done
 
