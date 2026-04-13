@@ -144,21 +144,26 @@ for ((i=1; i<=effective_runs; i++)); do
     export SPEF_PATH="$spef_path"
 
     echo "[eval_tns.sh] Evaluating run $i ..."
-    eval_output=$($OPENROAD_EXE -exit "${SCRIPT_DIR}/eval_tns.tcl" 2>&1) || true
+    eval_log="${SCRIPT_DIR}/logs/eval_tns_run${i}.log"
+    $OPENROAD_EXE -exit "${SCRIPT_DIR}/eval_tns.tcl" > "$eval_log" 2>&1 || true
 
-    # Extract TNS from report_tns output (format: "tns -12345.67")
+    # Extract TNS from report_tns output (format: "tns max -12345.67" or "tns -12345.67")
     # || true prevents set -e from killing the script if grep finds no match
-    tns_val=$(echo "$eval_output" | grep -oP '^\s*tns\s+\K[-\d.eE+]+' | tail -1) || true
+    tns_val=$(grep -oP 'tns\s*(max\s+)?\K[-\d.eE+]+' "$eval_log" | tail -1) || true
     # Also capture WNS for debugging
-    wns_val=$(echo "$eval_output" | grep -oP '^\s*wns\s+\K[-\d.eE+]+' | tail -1) || true
+    wns_val=$(grep -oP 'wns\s*(max\s+)?\K[-\d.eE+]+' "$eval_log" | tail -1) || true
 
     if [ -n "$tns_val" ]; then
         echo "[TNS_EVAL] tns_eval = $tns_val" >> "$run_log"
         echo "  run $i: tns_eval = $tns_val (wns_eval = ${wns_val:-N/A})"
     else
         echo "[TNS_EVAL] tns_eval = N/A (extraction_failed)" >> "$run_log"
-        echo "  run $i: tns_eval extraction failed, dumping last 30 lines:"
-        echo "$eval_output" | tail -30
+        if [ "$i" -eq 1 ]; then
+            echo "  run $i: tns_eval extraction failed, dumping FULL OpenROAD output for debugging:"
+            cat "$eval_log"
+        else
+            echo "  run $i: tns_eval extraction failed (tns_raw: $(grep -i 'tns' "$eval_log" | tail -1))"
+        fi
     fi
 done
 
