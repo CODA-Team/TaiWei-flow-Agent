@@ -233,6 +233,7 @@ class OptimizationWorkflow:
         
         # Find the design configuration
         configurations = self.config.get('configurations', [])
+        self.design_config = None
         for config in configurations:
             if (
                 config['platform'].lower() == self.platform.lower()
@@ -241,7 +242,21 @@ class OptimizationWorkflow:
             ):
                 self.design_config = config
                 break
-        else:
+
+        # TNS_EVAL shares the same design parameters as ECP; fall back to ECP
+        # config so users don't need to duplicate entries in opt_config.json.
+        if self.design_config is None and self.objective == 'TNS_EVAL':
+            for config in configurations:
+                if (
+                    config['platform'].lower() == self.platform.lower()
+                    and config['design'].lower() == self.design.lower()
+                    and config['goal'].upper() == 'ECP'
+                ):
+                    self.design_config = config
+                    print(f"[TNS_EVAL] Falling back to ECP config for {self.platform}/{self.design}")
+                    break
+
+        if self.design_config is None:
             raise ValueError(
                 f"No configuration found for platform={self.platform}, design={self.design}, objective={self.objective}"
             )
