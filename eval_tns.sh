@@ -161,6 +161,24 @@ for ((i=1; i<=effective_runs; i++)); do
     fi
 done
 
+# ============================================================
+# Step 4: On iteration 1, derive tns_base from default run
+# ============================================================
+if [ "$iteration" -eq 1 ]; then
+    default_task_id=$((parallel_runs + 1))
+    default_log="${SCRIPT_DIR}/logs/${platform}_${design}_run${default_task_id}.log"
+    default_tns_eval=$(grep -oP '\[TNS_EVAL\] tns_eval = \K[-\d.eE+]+' "$default_log" | tail -1)
+
+    if [ -n "$default_tns_eval" ]; then
+        # tns_base = -tns_eval (positive number, since tns_eval <= 0)
+        tns_base=$(echo "$default_tns_eval" | awk '{printf "%.4f", -$1}')
+        echo "$tns_base" > "${SCRIPT_DIR}/designs/${platform}/${design}/tns_base.txt"
+        echo "[eval_tns.sh] Default run tns_eval = $default_tns_eval, tns_base = $tns_base (saved)"
+    else
+        echo "[eval_tns.sh] WARNING: could not extract tns_eval from default run log"
+    fi
+fi
+
 # Clean up temp SDC
 rm -f "$CP0_SDC"
 
