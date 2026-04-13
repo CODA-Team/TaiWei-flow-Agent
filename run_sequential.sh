@@ -83,6 +83,11 @@ generate_initial_parameters() {
         # echo "$new_core_util,$new_cell_pad_global,$new_cell_pad_detail,$synth_flatten,$new_pin_layer,$new_above_layer,$new_tns,$new_lb_addon,$new_cts_size,$new_cts_diameter,$enable_dpo,$new_clk_period" >> "$csv_file"
         echo "$new_core_util,$new_cell_pad_global,$new_cell_pad_detail,$enable_dpo,$new_clk_period" >> "$csv_file"
     done
+
+    # Append one extra "default" baseline row (unperturbed config.mk values).
+    # This makes iteration 1 run (parallel_runs + 1) tasks, where the last task
+    # uses the original config.mk verbatim as a reference point for the optimizer.
+    echo "$core_util,$cell_pad_global,$cell_pad_detail,$enable_dpo,$clk_period" >> "$csv_file"
 }
 
 # Function to clean up previous run's CSV
@@ -127,6 +132,13 @@ generate_new_files() {
     # Change to the design directory
     cd "${SCRIPT_DIR}/designs/${platform}/${design}"
 
+    # Iteration 1 carries an extra "default" row (see generate_initial_parameters),
+    # so allow one additional config file to be generated on the first pass.
+    effective_runs=$parallel_runs
+    if [ "$iteration" -eq 1 ]; then
+        effective_runs=$((parallel_runs + 1))
+    fi
+
     i=1
     # tail -n +2 "$csv_file" | while IFS=',' read -r core_util cell_pad_global cell_pad_detail synth_flatten pin_layer above_layer tns lb_addon cts_size cts_diameter enable_dpo clk_period; do
     tail -n +2 "$csv_file" | while IFS=',' read -r core_util cell_pad_global cell_pad_detail enable_dpo clk_period; do
@@ -164,8 +176,8 @@ generate_new_files() {
         # Increment the iteration counter
         i=$((i + 1))
 
-        # Break after parallel_runs iterations
-        if [ $i -gt $parallel_runs ]; then
+        # Break after effective_runs iterations (parallel_runs, or +1 on iteration 1)
+        if [ $i -gt $effective_runs ]; then
             break
         fi
     done
@@ -180,7 +192,7 @@ if [ "$iteration" -eq 1 ]; then
 fi
 
 # Clean up and generate new files
-make DESIGN_CONFIG=designs/${PLATFORM}/${DESIGN}/config_1.mk  clean_all
+make clean_all
 generate_new_files
 
 echo "Sequential phase completed for iteration $iteration" 
