@@ -59,9 +59,26 @@ if {[file exists $::env(SPEF_PATH)]} {
 
 # --- Propagate and report ---
 set_propagated_clock [all_clocks]
-puts "DEBUG: Active clocks after setup: [all_clocks]"
+set active_clocks [all_clocks]
+puts "DEBUG: Active clocks after setup: $active_clocks"
 
-puts "DEBUG: Reporting timing under CP_0 = $cp0"
+# Verify the clock period was actually set to CP_0
+foreach clk $active_clocks {
+    set period [sta::clock_period $clk]
+    puts "DEBUG: Clock [get_name $clk] period = $period"
+    set src_pins [sta::clock_source_pins $clk]
+    puts "DEBUG: Clock [get_name $clk] source pins = $src_pins"
+}
+
+# Count registers / endpoints
+set reg_count [llength [sta::all_registers -no_check]]
+puts "DEBUG: Register count = $reg_count"
+
+# Show the worst path explicitly (check if any path exists at all)
+puts "DEBUG: report_checks -path_delay max -slack_max 1e9 -group_count 1 -endpoint_count 1:"
+report_checks -path_delay max -slack_max 1e9 -group_count 1 -endpoint_count 1
+
+puts "DEBUG: Reporting TNS/WNS under CP_0 = $cp0"
 report_tns
 report_wns
 
