@@ -7,9 +7,9 @@
 #   CP0         - new clock period (replaces ODB's existing clock)
 #   CLK_PORT    - clock port name (e.g. clk, clk_i)
 
-puts "DEBUG: Loading ODB from $::env(ODB_PATH)"
-read_db $::env(ODB_PATH)
-
+# Load liberty libraries FIRST so that read_db can link the design's
+# instances to timing models. If read_db runs before read_liberty,
+# the netlist cells stay un-linked and STA reports 0 registers / 0 paths.
 puts "DEBUG: Loading liberty libraries..."
 set lib_count 0
 foreach lib_pattern $::env(LIB_FILES) {
@@ -19,6 +19,9 @@ foreach lib_pattern $::env(LIB_FILES) {
     }
 }
 puts "DEBUG: Loaded $lib_count liberty files"
+
+puts "DEBUG: Loading ODB from $::env(ODB_PATH)"
+read_db $::env(ODB_PATH)
 
 # --- Critical: remove any clocks left over from the original flow run ---
 set existing_clocks [all_clocks]
