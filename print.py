@@ -46,16 +46,18 @@ def extract_table(file_content: str) -> pd.DataFrame:
                         return float(m.group(1)) if m else None
 
                   
-                    # | result_dump | base | ecp | dwl | cts_wl |
+                    # | result_dump | base | ecp | dwl | cts_wl | drc | wns | tns | tns_eval | ...
                     r_dump = int(parts[0])
-                    # base = int(parts[1]) 
+                    # base = int(parts[1])
                     ecp = parse_val(parts[2])
                     dwl = parse_val(parts[3])
+                    tns_eval = parse_val(parts[8]) if len(parts) > 8 else None
 
                     rows.append({
                         "result_dump": r_dump,
                         "ECP": ecp,
-                        "total_wirelength": dwl
+                        "total_wirelength": dwl,
+                        "tns_eval": tns_eval,
                     })
                 except (ValueError, IndexError):
                     continue
@@ -76,6 +78,11 @@ def prepare_data(df: pd.DataFrame, mode: str):
         df = df.dropna(subset=["ECP"]).copy()
         df["metric"] = df["ECP"]
         ylabel = "Effective Clock Period"
+    elif mode == "TNS_EVAL":
+        df = df.dropna(subset=["tns_eval"]).copy()
+        # tns_eval <= 0; we minimize -tns_eval (so closest-to-0 wins)
+        df["metric"] = -df["tns_eval"]
+        ylabel = "-TNS_EVAL (lower is better)"
     else: # COMBO
         df = df.dropna(subset=["ECP", "total_wirelength"]).copy()
         df["metric"] = df["ECP"] + df["total_wirelength"]
@@ -153,7 +160,7 @@ def main():
     parser = argparse.ArgumentParser(description="Plot optimization envelope from log metrics.")
     parser.add_argument("filename", help="Path to markdown log file")
     parser.add_argument("-o", "--objective", required=True,
-                        choices=["DWL", "ECP", "COMBO"],
+                        choices=["DWL", "ECP", "COMBO", "TNS_EVAL"],
                         help="Optimization objective")
     args = parser.parse_args()
 
