@@ -112,17 +112,26 @@ else
 fi
 
 # ============================================================
-# Step 2: Create temporary SDC with CP_0
+# Step 2: Determine clock port name (eval_tns.tcl will create the clock
+# programmatically rather than reading SDC, since the ODB already has
+# a propagated clock that conflicts with read_sdc).
 # ============================================================
-CP0_SDC="${SCRIPT_DIR}/designs/${platform}/${design}/constraint_cp0.sdc"
-cp "$BASE_SDC" "$CP0_SDC"
-# Remove existing clk_period line and prepend CP_0
-sed -i '/set clk_period/d' "$CP0_SDC"
-sed -i "1i set clk_period $CP_0" "$CP0_SDC"
-tr -d '\r' < "$CP0_SDC" > "${CP0_SDC}.tmp" && mv "${CP0_SDC}.tmp" "$CP0_SDC"
-export SDC_PATH="$CP0_SDC"
+case "$design" in
+    aes|jpeg)  clk_port_name="clk" ;;
+    ibex)      clk_port_name="clk_i" ;;
+    *)
+        # Try to extract from the design's SDC
+        clk_port_name=$(grep -E '^set clk_port_name' "$BASE_SDC" | awk '{print $3}' | head -1)
+        if [ -z "$clk_port_name" ]; then
+            echo "[eval_tns.sh] ERROR: Could not determine clock port name for design '$design'"
+            exit 1
+        fi
+        ;;
+esac
+export CLK_PORT="$clk_port_name"
+export CP0="$CP_0"
 
-echo "[eval_tns.sh] CP_0 SDC created at $CP0_SDC (clk_period = $CP_0)"
+echo "[eval_tns.sh] Will create clock on port '$clk_port_name' with period $CP_0"
 
 # ============================================================
 # Step 3: Evaluate TNS for each run
@@ -184,8 +193,5 @@ if [ "$iteration" -eq 1 ]; then
         echo "[eval_tns.sh] WARNING: could not extract tns_eval from default run log"
     fi
 fi
-
-# Clean up temp SDC
-rm -f "$CP0_SDC"
 
 echo "[eval_tns.sh] TNS evaluation complete for iteration $iteration."
