@@ -72,16 +72,18 @@ def parse_markdown_table(file_path):
                     # parse DWL (may be N/A)
                     dwl = parse_metric(parts[3])
                     
-                    # parse CTS WL 
+                    # parse CTS WL
                     cts_wl = parse_metric(parts[4]) if len(parts) > 4 else None
-                    
-                    
+                    # parse tns_eval from position 8 (added in extended table)
+                    tns_eval = parse_metric(parts[8]) if len(parts) > 8 else None
+
                     records.append({
                         'result_dump': result_dump,
                         'base': base,
                         'ecp': ecp,
                         'dwl': dwl,
-                        'cts_wl': cts_wl
+                        'cts_wl': cts_wl,
+                        'tns_eval': tns_eval,
                     })
 
                 except (ValueError, IndexError):
@@ -114,6 +116,12 @@ def analyze_records(records, objective: str):
             if wl is None or cp is None:
                 return None
             return wl + cp
+        if obj == "TNS_EVAL":
+            # tns_eval <= 0; smaller (more negative) is worse, so closest to 0 is best
+            # min of tns_eval gives the worst, but we want to find best (max)
+            # Negate so min(metric) gives the best (most positive, i.e. least negative tns_eval)
+            te = rec.get('tns_eval')
+            return -te if te is not None else None
         return None
 
     valid_records = []
@@ -132,15 +140,21 @@ def analyze_records(records, objective: str):
             'base': min_record['base'],
             'ecp': min_record['ecp'],
             'dwl': min_record['dwl'],
+            'tns_eval': min_record.get('tns_eval'),
             'metric': min_record['metric'],
         }
-    
-    na_count = sum(1 for r in records if r['dwl'] is None or r['ecp'] is None)
-    
-   
+
+    # N/A check uses the metric relevant to the objective
+    if obj == "TNS_EVAL":
+        is_missing = lambda r: r.get('tns_eval') is None
+    else:
+        is_missing = lambda r: r['dwl'] is None or r['ecp'] is None
+
+    na_count = sum(1 for r in records if is_missing(r))
+
     na_per_dump = defaultdict(int)
     for record in records:
-        if record['dwl'] is None or record['ecp'] is None:
+        if is_missing(record):
             na_per_dump[record['result_dump']] += 1
     
     return min_info, na_count, na_per_dump
@@ -161,6 +175,8 @@ def print_analysis(min_info, na_count, na_per_dump, records, objective: str):
         print(f"  Base:             {min_info['base']}")
         print(f"  ECP:              {min_info['ecp']}")
         print(f"  Total Wirelength: {min_info['dwl']}")
+        if min_info.get('tns_eval') is not None:
+            print(f"  TNS_EVAL:         {min_info['tns_eval']}")
         print(f"  Metric({objective.upper()}): {min_info['metric']:.4f}")
     else:
         print("  No valid target data found")
@@ -216,8 +232,8 @@ example:
     parser.add_argument('--detailed', action='store_true', 
                        help='Show detailed N/A counts for each result_dump.')
     parser.add_argument('-o', '--objective', required=True,
-                       choices=['DWL', 'ECP', 'COMBO'],
-                       help='Select the following as the analysis targets: DWL (bus length), ECP (clock cycles), and COMBO (the sum of both).')
+                       choices=['DWL', 'ECP', 'COMBO', 'TNS_EVAL'],
+                       help='Analysis target: DWL, ECP, COMBO, or TNS_EVAL (TNS evaluated under fixed reference clock CP_0).')
     
     args = parser.parse_args()
     
