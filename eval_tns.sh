@@ -28,15 +28,22 @@ CP0_FILE="${SCRIPT_DIR}/designs/${platform}/${design}/cp0.txt"
 CP0_FACTOR=0.9
 
 # --- Determine liberty file glob patterns per platform ---
+# Patterns are space-separated, each is a glob expanded inside the Tcl script.
+# For asap7: include both compressed (.lib.gz, e.g. AO/INVBUF/OA/SIMPLE) and
+# uncompressed (.lib, e.g. SEQ which has the FF cells, and FAKE DFF cells).
+# Without the SEQ liberty, FFs in the design have no timing models → STA
+# reports 0 registers / 0 paths / TNS = 0.
 case "$platform" in
     asap7)
-        LIB_FILES="${PLATFORM_DIR}/lib/NLDM/*_RVT_TT_nldm_*.lib.gz"
+        LIB_FILES="${PLATFORM_DIR}/lib/NLDM/*_RVT_TT_nldm_*.lib.gz ${PLATFORM_DIR}/lib/NLDM/*_RVT_TT_nldm_*.lib ${PLATFORM_DIR}/lib/NLDM/*_SRAM_TT_nldm_*.lib.gz ${PLATFORM_DIR}/lib/NLDM/*_SRAM_TT_nldm_*.lib"
         ;;
     sky130hd)
-        LIB_FILES="${PLATFORM_DIR}/lib/sky130_fd_sc_hd__tt_025C_1v80.lib"
+        # Std cells + dummy IO (some designs reference IO macros)
+        LIB_FILES="${PLATFORM_DIR}/lib/sky130_fd_sc_hd__tt_025C_1v80.lib ${PLATFORM_DIR}/lib/sky130_dummy_io.lib"
         ;;
     nangate45)
-        LIB_FILES="${PLATFORM_DIR}/lib/NangateOpenCellLibrary_typical.lib"
+        # Std cells + all fakeram macro libs (harmless if a design doesn't use them)
+        LIB_FILES="${PLATFORM_DIR}/lib/NangateOpenCellLibrary_typical.lib ${PLATFORM_DIR}/lib/fakeram45_*.lib"
         ;;
     *)
         echo "Error: unsupported platform '$platform' for TNS evaluation"
