@@ -60,8 +60,9 @@ def parse_markdown_table(file_path):
                     def parse_metric(val_str):
                         if not val_str or 'N/A' in val_str:
                             return None
-                        
-                        match = re.search(r'([\d.]+)', val_str)
+                        # -?[\d.]+ captures optional negative sign (critical
+                        # for tns/wns/tns_eval which are always <= 0).
+                        match = re.search(r'(-?[\d.]+)', val_str)
                         if match:
                             return float(match.group(1))
                         return None
