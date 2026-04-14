@@ -15,7 +15,8 @@ def extract_table(file_content: str) -> pd.DataFrame:
     in_table = False
     header_found = False
     
-    num_re = re.compile(r'([\d.]+)')
+    # -?[\d.]+ captures optional negative sign (needed for tns/wns/tns_eval)
+    num_re = re.compile(r'(-?[\d.]+)')
 
     for line in lines:
         line = line.strip()
