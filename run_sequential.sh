@@ -31,8 +31,10 @@ generate_initial_parameters() {
     rm -f "$csv_file"
     
     # Create CSV header
-    # echo -n "core_util,cell_pad_global,cell_pad_detail,synth_flatten,pin_layer,above_layer,tns,lb_addon,cts_size,cts_diameter,enable_dpo,clk_period" > "$csv_file"
-    echo -n "core_util,cell_pad_global,cell_pad_detail,enable_dpo,clk_period" > "$csv_file"
+    # 12 parameters
+    echo -n "core_util,cell_pad_global,cell_pad_detail,synth_flatten,pin_layer,above_layer,tns,lb_addon,cts_size,cts_diameter,enable_dpo,clk_period" > "$csv_file"
+    # 5 parameters
+    # echo -n "core_util,cell_pad_global,cell_pad_detail,enable_dpo,clk_period" > "$csv_file"
     echo >> "$csv_file"  # Add newline with Unix ending
     
     # Extract current values from config.mk
@@ -72,22 +74,58 @@ generate_initial_parameters() {
             new=int(val * f);
             print new < 0 ? 0 : (new > 3 ? 3 : new)
         }')
+
         local new_cell_pad_detail=$(awk -v val=$cell_pad_detail -v f=$factor 'BEGIN{
             new=int(val * f);
             print new < 0 ? 0 : (new > 3 ? 3 : new)
         }')
        
         local new_clk_period=$(awk -v val=$clk_period -v f=$factor 'BEGIN{printf "%.2f", val * f}')
+
+        local new_cts_size=$(awk -v val=$cts_size -v f=$factor 'BEGIN{
+            new=int(val * f);
+            print new < 10 ? 10 : (new > 40 ? 40 : new)
+        }')
+
+        local new_cts_diameter=$(awk -v val=$cts_diameter -v f=$factor 'BEGIN{
+            new=int(val * f);
+            print new < 80 ? 80 : (new > 120 ? 120 : new)
+        }')
+
+        local new_pin_layer=$(awk -v val=$pin_layer -v f=$factor 'BEGIN{
+            new=val * f;
+            print new < 0.2 ? 0.2 : (new > 0.7 ? 0.7 : new)
+        }')
+
+        local new_above_layer=$(awk -v val=$above_layer -v f=$factor 'BEGIN{
+            new=val * f;
+            print new < 0.2 ? 0.2 : (new > 0.7 ? 0.7 : new)
+        }')
+
+        local new_tns=$(awk -v val=$tns -v f=$factor 'BEGIN{
+            new=int(val * f);
+            print new < 0 ? 0 : (new > 100 ? 100 : new)
+        }')
+
+        local new_lb_addon=$(awk -v val=$lb_addon -v f=$factor 'BEGIN{
+            new=val * f;
+            print new < 0.2 ? 0.2 : (new > 0.99 ? 0.99 : new)
+        }')
         
         # Keep boolean values as is
-        # echo "$new_core_util,$new_cell_pad_global,$new_cell_pad_detail,$synth_flatten,$new_pin_layer,$new_above_layer,$new_tns,$new_lb_addon,$new_cts_size,$new_cts_diameter,$enable_dpo,$new_clk_period" >> "$csv_file"
-        echo "$new_core_util,$new_cell_pad_global,$new_cell_pad_detail,$enable_dpo,$new_clk_period" >> "$csv_file"
+        # 12 parameters
+        echo "$new_core_util,$new_cell_pad_global,$new_cell_pad_detail,$synth_flatten,$new_pin_layer,$new_above_layer,$new_tns,$new_lb_addon,$new_cts_size,$new_cts_diameter,$enable_dpo,$new_clk_period" >> "$csv_file"
+        # 5 parameters
+        # echo "$new_core_util,$new_cell_pad_global,$new_cell_pad_detail,$enable_dpo,$new_clk_period" >> "$csv_file"
     done
 
     # Append one extra "default" baseline row (unperturbed config.mk values).
     # This makes iteration 1 run (parallel_runs + 1) tasks, where the last task
     # uses the original config.mk verbatim as a reference point for the optimizer.
-    echo "$core_util,$cell_pad_global,$cell_pad_detail,$enable_dpo,$clk_period" >> "$csv_file"
+    # 12 parameters
+    echo "$core_util,$cell_pad_global,$cell_pad_detail,$synth_flatten,$pin_layer,$above_layer,$tns,$lb_addon,$cts_size,$cts_diameter,$enable_dpo,$clk_period" >> "$csv_file"
+    # 5 parameters
+    # echo "$core_util,$cell_pad_global,$cell_pad_detail,$enable_dpo,$clk_period" >> "$csv_file"
 }
 
 # Function to clean up previous run's CSV
@@ -140,8 +178,10 @@ generate_new_files() {
     fi
 
     i=1
-    # tail -n +2 "$csv_file" | while IFS=',' read -r core_util cell_pad_global cell_pad_detail synth_flatten pin_layer above_layer tns lb_addon cts_size cts_diameter enable_dpo clk_period; do
-    tail -n +2 "$csv_file" | while IFS=',' read -r core_util cell_pad_global cell_pad_detail enable_dpo clk_period; do
+    #12 parameters
+    tail -n +2 "$csv_file" | while IFS=',' read -r core_util cell_pad_global cell_pad_detail synth_flatten pin_layer above_layer tns lb_addon cts_size cts_diameter enable_dpo clk_period; do
+    #5 parameters
+    # tail -n +2 "$csv_file" | while IFS=',' read -r core_util cell_pad_global cell_pad_detail enable_dpo clk_period; do
     
         # Create a copy of the base config.mk for this iteration
         cp config.mk config_$i.mk
@@ -151,6 +191,13 @@ generate_new_files() {
         sed -i "s|export CELL_PAD_IN_SITES_GLOBAL_PLACEMENT.*|export CELL_PAD_IN_SITES_GLOBAL_PLACEMENT = $cell_pad_global|" config_$i.mk
         sed -i "s|export CELL_PAD_IN_SITES_DETAIL_PLACEMENT.*|export CELL_PAD_IN_SITES_DETAIL_PLACEMENT = $cell_pad_detail|" config_$i.mk
         sed -i "s|export ENABLE_DPO.*|export ENABLE_DPO = $enable_dpo|" config_$i.mk
+        sed -i "s|export CTS_CLUSTER_SIZE.*|export CTS_CLUSTER_SIZE = $cts_size|" config_$i.mk
+        sed -i "s|export CTS_CLUSTER_DIAMETER.*|export CTS_CLUSTER_DIAMETER = $cts_diameter|" config_$i.mk
+        sed -i "s|export SYNTH_FLATTEN.*|export SYNTH_FLATTEN = $synth_flatten|" config_$i.mk
+        sed -i "s|export PIN_LAYER_ADJUST.*|export PIN_LAYER_ADJUST = $pin_layer|" config_$i.mk
+        sed -i "s|export ABOVE_LAYER_ADJUST.*|export ABOVE_LAYER_ADJUST = $above_layer|" config_$i.mk
+        sed -i "s|export TNS_END_PERCENT.*|export TNS_END_PERCENT = $tns|" config_$i.mk
+        sed -i "s|export PLACE_DENSITY_LB_ADDON.*|export PLACE_DENSITY_LB_ADDON = $lb_addon|" config_$i.mk
         
         # Create new SDC file with appropriate name
         if [[ "$platform" == "asap7" && "$design" == "jpeg" ]]; then
