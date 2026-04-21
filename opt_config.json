@@ -27,8 +27,57 @@
         0,
         1
       ]
+    },
+    "PIN_LAYER_ADJUST": {
+      "type": "float",
+      "range": [
+        0.2,
+        0.7
+      ]
+    },
+    "ABOVE_LAYER_ADJUST": {
+      "type": "float",
+      "range": [
+        0.2,
+        0.7
+      ]
+    },
+    "PLACE_DENSITY_LB_ADDON": {
+      "type": "float",
+      "range": [
+        0.0,
+        0.99
+      ]
+    },
+    "FLATTEN": {
+      "type": "int",
+      "range": [
+        0,
+        1
+      ]
+    },
+    "CTS_CLUSTER_SIZE": {
+      "type": "int",
+      "range": [
+        10,
+        40
+      ]
+    },
+    "CTS_CLUSTER_DIAMETER": {
+      "type": "int",
+      "range": [
+        80,
+        120
+      ]
+    },
+    "TNS_END_PERCENT": {
+      "type": "int",
+      "range": [
+        0,
+        100
+      ]
     }
-  },
+  },     
   "configurations": [
     {
       "description": "asap7 aes ECP",
