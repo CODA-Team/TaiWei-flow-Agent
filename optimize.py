@@ -302,11 +302,36 @@ class OptimizationWorkflow:
         min_clk = self.initial_clk_period * 0
         max_clk = self.initial_clk_period * 2
 
-        # Define parameter names in the expected order
+        # # Define 5 parameter names in the expected order
+        # self.parameter_names = [
+        #     'core_util',
+        #     'cell_pad_global',
+        #     'cell_pad_detail', 
+        #     'enable_dpo',
+        #     'clk_period'
+        # ]
+        
+        # # Set all parameter constraints including clock period range
+        # self.param_constraints = {
+        #     'core_util': {'type': 'int', 'range': [20, 99]},
+        #     'cell_pad_global': {'type': 'int', 'range': [0, 4]},
+        #     'cell_pad_detail': {'type': 'int', 'range': [0, 4]},
+        #     'enable_dpo': {'type': 'int', 'range': [0, 1]},
+        #     'clk_period': {'type': 'float', 'range': [min_clk, max_clk]}
+        # }
+
+        # Define 12 parameter names in the expected order
         self.parameter_names = [
             'core_util',
             'cell_pad_global',
             'cell_pad_detail', 
+            'synth_flatten',
+            'pin_layer',
+            'above_layer',
+            'tns',
+            'lb_addon',
+            'cts_size',
+            'cts_diameter',
             'enable_dpo',
             'clk_period'
         ]
@@ -316,6 +341,13 @@ class OptimizationWorkflow:
             'core_util': {'type': 'int', 'range': [20, 99]},
             'cell_pad_global': {'type': 'int', 'range': [0, 4]},
             'cell_pad_detail': {'type': 'int', 'range': [0, 4]},
+            'synth_flatten': {'type': 'int', 'range': [0, 1]},
+            'pin_layer': {'type': 'float', 'range': [0.2, 0.7]},
+            'above_layer': {'type': 'float', 'range': [0.2, 0.7]},
+            'tns': {'type': 'int', 'range': [70, 100]},
+            'lb_addon': {'type': 'float', 'range': [0.00, 0.99]},
+            'cts_size': {'type': 'int', 'range': [10, 40]},
+            'cts_diameter': {'type': 'int', 'range': [80, 120]},
             'enable_dpo': {'type': 'int', 'range': [0, 1]},
             'clk_period': {'type': 'float', 'range': [min_clk, max_clk]}
         }
