@@ -70,10 +70,10 @@ objective="${objective^^}"
 # fi
 
 # Validate design
-if [[ "$design" != "aes" && "$design" != "ibex" && "$design" != "jpeg" ]]; then
-    echo "Error: design must be one of: aes, ibex, jpeg"
-    # exit 1
-fi
+# if [[ "$design" != "aes" && "$design" != "ibex" && "$design" != "jpeg" ]]; then
+#     echo "Error: design must be one of: aes, ibex, jpeg"
+#     # exit 1
+# fi
 
 # Validate objective
 if [[ "$objective" != "ECP" && "$objective" != "DWL" && "$objective" != "COMBO" && "$objective" != "TNS_EVAL" ]]; then
