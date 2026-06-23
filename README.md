@@ -96,8 +96,8 @@ The ORFS-Agent consists of several key components:
 #### Python Environment Setup
 ```bash
 # Create virtual environment
-python3 -m venv .venv_orfs_agent
-source .venv_orfs_agent/bin/activate
+python3 -m venv .venv_orfo
+source .venv_orfo/bin/activate
 
 # Install required packages
 pip install numpy pandas scikit-learn scipy python-dotenv scikit-optimize openai torch sentence_transformers 
